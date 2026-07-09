@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulyn | Synthetic Economy Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: '#0f1115',
+                        panel: '#1a1d24',
+                        accent: '#ff4a5a',
+                        success: '#22c55e',
+                        warning: '#eab308'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f1115; color: #e2e8f0; }
+        .node-consumer { fill: #94a3b8; }
+        .node-retailer { fill: #3b82f6; stroke: #60a5fa; stroke-width: 2px; }
+        .node-influencer { fill: #a855f7; stroke: #d8b4fe; stroke-width: 2px; }
+        .node-news { fill: #f59e0b; stroke: #fde68a; stroke-width: 2px; }
+        .link { stroke: #334155; stroke-opacity: 0.6; }
+        .state-buy { fill: #22c55e; filter: drop-shadow(0 0 4px #22c55e); }
+        .state-reject { fill: #ef4444; filter: drop-shadow(0 0 4px #ef4444); }
+        .state-wait { fill: #eab308; }
+        .progress-bar-bg { background-color: #334155; border-radius: 9999px; height: 6px; width: 100%; overflow: hidden; }
+        .progress-bar-fill { background-color: #3b82f6; height: 100%; }
+        /* D3 tooltip */
+        #tooltip { position: absolute; opacity: 0; background: #1e293b; padding: 8px; border-radius: 4px; pointer-events: none; font-size: 12px; z-index: 50; }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="h-screen w-screen flex flex-col overflow-hidden">
+    
+    <!-- Top Nav -->
+    <header class="h-14 bg-panel border-b border-gray-800 flex items-center justify-between px-6 shrink-0">
+        <div class="flex items-center gap-2">
+            <div class="w-6 h-6 bg-accent rounded-sm rotate-45"></div>
+            <span class="font-bold text-xl tracking-tight text-white ml-2">Simulyn</span>
+            <span class="text-xs text-gray-500 ml-2 mt-1 uppercase tracking-widest">Synthetic Economy</span>
+        </div>
+        <nav class="flex gap-6 text-sm font-medium">
+            <a href="#" class="text-white border-b-2 border-accent pb-4 pt-4">Products</a>
+            <a href="#" class="text-gray-500 cursor-not-allowed pt-4">Government Policy <span class="text-[10px] bg-gray-800 px-1 rounded ml-1">SOON</span></a>
+            <a href="#" class="text-gray-500 cursor-not-allowed pt-4">Supply Chain <span class="text-[10px] bg-gray-800 px-1 rounded ml-1">SOON</span></a>
+            <a href="#" class="text-gray-500 cursor-not-allowed pt-4">Healthcare <span class="text-[10px] bg-gray-800 px-1 rounded ml-1">SOON</span></a>
+        </nav>
+        <div class="text-xs font-mono text-gray-400 bg-gray-900 px-3 py-1 rounded">System: Online</div>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="flex flex-1 overflow-hidden">
+        
+        <!-- Left Sidebar: Scenario Setup -->
+        <aside class="w-80 bg-panel border-r border-gray-800 flex flex-col p-5 shrink-0 overflow-y-auto">
+            <h2 class="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">Scenario Setup</h2>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-gray-400 mb-1">Launch Product</label>
+                    <input type="text" id="product-name" value="$500 Smart Toaster" class="w-full bg-dark border border-gray-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-accent">
+                </div>
+                
+                <div>
+                    <div class="flex justify-between">
+                        <label class="block text-xs font-medium text-gray-400 mb-1">Price Point</label>
+                        <span id="price-val" class="text-xs text-white">$500</span>
+                    </div>
+                    <input type="range" id="price-slider" min="10" max="2000" value="500" class="w-full accent-accent">
+                </div>
+
+                <div>
+                    <div class="flex justify-between">
+                        <label class="block text-xs font-medium text-gray-400 mb-1">Marketing Budget</label>
+                        <span id="marketing-val" class="text-xs text-white">$2.5M</span>
+                    </div>
+                    <input type="range" id="marketing-slider" min="0" max="10" step="0.1" value="2.5" class="w-full accent-accent">
+                </div>
+                
+                <div>
+                    <div class="flex justify-between">
+                        <label class="block text-xs font-medium text-gray-400 mb-1">Initial Sentiment</label>
+                        <span id="sentiment-val" class="text-xs text-white">Neutral (0)</span>
+                    </div>
+                    <input type="range" id="sentiment-slider" min="-1" max="1" step="0.1" value="0" class="w-full accent-accent">
+                </div>
+            </div>
+
+            <button id="run-sim-btn" class="mt-6 w-full bg-accent hover:bg-red-500 text-white font-semibold py-2 rounded transition-colors shadow-[0_0_15px_rgba(255,74,90,0.4)]">
+                Run Simulation
+            </button>
+            
+            <hr class="border-gray-800 my-6">
+
+            <h2 class="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">Decision Comparison</h2>
+            
+            <!-- Scenario A -->
+            <div class="bg-dark p-3 rounded border border-gray-800 mb-3 relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-1 h-full bg-gray-600"></div>
+                <h3 class="text-xs font-bold text-gray-300">Scenario A (Current)</h3>
+                <div class="flex justify-between text-xs mt-2">
+                    <span class="text-gray-500">Adoption:</span>
+                    <span id="scenario-a-adopt" class="text-white font-mono">--%</span>
+                </div>
+                <div class="flex justify-between text-xs mt-1">
+                    <span class="text-gray-500">Est. Revenue:</span>
+                    <span id="scenario-a-rev" class="text-white font-mono">$0</span>
+                </div>
+            </div>
+
+            <!-- Scenario B -->
+            <div class="bg-dark p-3 rounded border border-gray-800 relative overflow-hidden opacity-50 cursor-not-allowed mb-6">
+                <div class="absolute top-0 left-0 w-1 h-full bg-accent"></div>
+                <h3 class="text-xs font-bold text-gray-300">Scenario B (Save & Compare)</h3>
+                <div class="text-xs mt-2 text-gray-500 italic">Run simulation first to unlock</div>
+            </div>
+
+            <!-- Export Report -->
+            <button class="w-full bg-transparent border border-gray-600 hover:border-gray-400 text-gray-300 text-xs font-semibold py-2 rounded transition-colors flex items-center justify-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                Export Simulation Report (PDF)
+            </button>
+
+        </aside>
+
+        <!-- Center: Simulation Graph -->
+        <main class="flex-1 flex flex-col relative bg-dark">
+            <!-- AMD Benchmark Panel Floating -->
+            <div class="absolute top-4 left-4 bg-panel/90 backdrop-blur border border-gray-800 p-3 rounded shadow-lg z-10 w-64">
+                <div class="flex items-center gap-2 mb-2">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/7/7c/AMD_Logo.svg" alt="AMD" class="h-3 filter grayscale brightness-200">
+                    <span class="text-xs font-bold text-white">Measured Runtime</span>
+                </div>
+                <div class="space-y-2 text-xs font-mono">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-400">CPU Matrix Math:</span>
+                        <span id="cpu-time" class="text-gray-500">Waiting...</span>
+                    </div>
+                    <div class="flex justify-between items-center border-t border-gray-700 pt-1">
+                        <span class="text-orange-400 font-bold">AMD GPU (ROCm):</span>
+                        <span id="gpu-time" class="text-white font-bold">Waiting...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- D3 Canvas -->
+            <div id="graph-container" class="flex-1 relative cursor-crosshair"></div>
+            <div id="tooltip"></div>
+
+            <!-- Time Slider Panel -->
+            <div class="h-20 bg-panel border-t border-gray-800 p-4 shrink-0 flex flex-col justify-center">
+                <div class="flex justify-between text-xs font-bold text-gray-400 mb-2">
+                    <span>Day 1 (Launch)</span>
+                    <span id="current-day-label" class="text-white">Day 1</span>
+                    <span>Day 30</span>
+                </div>
+                <input type="range" id="time-slider" min="1" max="30" value="1" disabled class="w-full accent-gray-500 cursor-not-allowed">
+            </div>
+        </main>
+
+        <!-- Right Sidebar: Agent Explainability -->
+        <aside class="w-80 bg-panel border-l border-gray-800 flex flex-col shrink-0">
+            <!-- Persistent Memory -->
+            <div class="p-5 border-b border-gray-800 h-1/2 overflow-y-auto">
+                <h2 class="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-1">Entity State</h2>
+                <p class="text-[10px] text-gray-500 mb-4">Click a node to inspect persistent memory</p>
+                
+                <div id="agent-empty" class="text-sm text-gray-600 italic text-center mt-10">No entity selected.</div>
+                
+                <div id="agent-details" class="hidden">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div id="agent-avatar" class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center font-bold text-white">ID</div>
+                        <div>
+                            <div id="agent-type" class="text-xs text-accent uppercase font-bold tracking-wide">Consumer</div>
+                            <div id="agent-id" class="text-lg font-bold text-white">Agent #402</div>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-y-2 gap-x-4 text-xs">
+                        <div class="text-gray-500">Age: <span id="agent-age" class="text-white font-medium">--</span></div>
+                        <div class="text-gray-500">Income: <span id="agent-income" class="text-white font-medium">--</span></div>
+                        <div class="text-gray-500">Savings: <span id="agent-savings" class="text-white font-medium">--</span></div>
+                        <div class="text-gray-500">Risk Tol: <span id="agent-risk" class="text-white font-medium">--</span></div>
+                        <div class="text-gray-500">Brand: <span id="agent-brand" class="text-white font-medium">--</span></div>
+                        <div class="text-gray-500">Mood: <span id="agent-mood" class="text-white font-medium">--</span></div>
+                    </div>
+
+                    <div class="mt-4 p-2 bg-gray-800/50 rounded text-xs border border-gray-700">
+                        <span class="text-gray-500 block mb-1">Current Action:</span>
+                        <span id="agent-action" class="font-bold text-lg text-white">WAITING</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Explainability & AI Chat -->
+            <div class="p-5 flex-1 overflow-y-auto bg-dark">
+                <h2 class="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">Decision Drivers</h2>
+                
+                <div id="reason-empty" class="text-sm text-gray-600 italic text-center mt-4">Inspect node for causality.</div>
+                
+                <div id="reason-details" class="hidden space-y-3">
+                    <!-- Progress Bars -->
+                    <div>
+                        <div class="flex justify-between text-[10px] text-gray-400 mb-1"><span>Price Sensitivity</span><span id="score-price">80%</span></div>
+                        <div class="progress-bar-bg"><div id="bar-price" class="progress-bar-fill bg-red-500" style="width: 80%"></div></div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-[10px] text-gray-400 mb-1"><span>Peer Influence</span><span id="score-peer">40%</span></div>
+                        <div class="progress-bar-bg"><div id="bar-peer" class="progress-bar-fill bg-blue-500" style="width: 40%"></div></div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-[10px] text-gray-400 mb-1"><span>Brand Trust</span><span id="score-trust">90%</span></div>
+                        <div class="progress-bar-bg"><div id="bar-trust" class="progress-bar-fill bg-green-500" style="width: 90%"></div></div>
+                    </div>
+
+                    <!-- Fireworks AI Chat -->
+                    <div class="mt-6">
+                        <div class="flex items-center gap-1 mb-2">
+                            <span class="text-xs font-bold text-gray-300">Semantic Reasoning</span>
+                            <span class="text-[9px] bg-orange-500/20 text-orange-400 px-1 rounded uppercase tracking-wider border border-orange-500/50">Fireworks AI</span>
+                        </div>
+                        <div class="relative bg-panel border border-gray-700 rounded-lg p-3 text-sm text-gray-300">
+                            <div class="absolute -left-2 top-4 w-4 h-4 bg-panel border-l border-b border-gray-700 rotate-45"></div>
+                            <div id="ai-chat-content" class="relative z-10 italic">
+                                "The price point is high, but my network has been talking about this constantly. I trust the brand enough to preorder."
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
