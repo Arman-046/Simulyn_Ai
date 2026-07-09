@@ -107,9 +107,9 @@ def generate_chat(req: ChatRequest):
             base_url="https://api.fireworks.ai/inference/v1",
             api_key=FIREWORKS_API_KEY,
         )
-        prompt = f"You are a {req.agent_type} making ${req.income}/yr. You are feeling {req.mood}. Why did you decide to {req.state} the product {req.product} priced at ${req.price}? Answer in one short sentence as if talking to a friend."
+        prompt = f"You are a real human {req.agent_type} earning ${req.income}/yr. You currently feel {req.mood}. You just decided to {req.state} a product called '{req.product}' priced at ${req.price}. Write a single, highly realistic and casual text message to a friend explaining your decision. Do NOT sound like an AI robot. Use conversational language, a touch of attitude or emotion, and sound like a real person reacting to the market. Output ONLY the quote."
         response = client.chat.completions.create(
-          model="accounts/fireworks/models/llama-v3-8b-instruct",
+          model="accounts/fireworks/models/deepseek-v4-pro",
           messages=[{"role": "user", "content": prompt}],
         )
         return {"chat": response.choices[0].message.content.strip('"')}
