@@ -39,7 +39,7 @@ python -m http.server 3000
 ```
 Visit `http://localhost:3000` to interact with the Synthetic Economy.
 
-## 🎤 Judge Questions & Architecture
+## 💡 Architecture & Technical Decisions
 
 ### Why AMD?
 Graph computation and influence propagation are parallel workloads that benefit from GPU acceleration. ROCm lets us scale those computations while keeping the architecture portable.
