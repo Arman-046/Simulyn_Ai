@@ -41,7 +41,15 @@ function initData() {
             riskTolerance: Math.random(),
             brandLoyalty: Math.random(),
             optimism: Math.random(),
-            mood: ['Happy', 'Anxious', 'Neutral', 'Excited', 'Skeptical'][Math.floor(Math.random() * 5)]
+            mood: ['Happy', 'Anxious', 'Neutral', 'Excited', 'Skeptical', 'Optimistic'][Math.floor(Math.random() * 6)],
+            goal: ['Buying a bike', 'Saving for house', 'Paying off debt', 'Upgrading phone', 'Investing'][Math.floor(Math.random() * 5)],
+            financialStatus: ['Saving money', 'Living paycheck to paycheck', 'Comfortable', 'Struggling', 'Investing heavily'][Math.floor(Math.random() * 5)],
+            recentPurchase: ['Laptop', 'Groceries', 'Headphones', 'Shoes', 'Nothing'][Math.floor(Math.random() * 5)],
+            recentNegativeExperience: ['Poor delivery', 'Rude support', 'Faulty product', 'Overcharged', 'None'][Math.floor(Math.random() * 5)],
+            currentNeed: ['Phone', 'Commute', 'Status symbol', 'Entertainment', 'Utility'][Math.floor(Math.random() * 5)],
+            monthlyExpenses: Math.floor(20000 + Math.random() * 50000),
+            salaryDay: ['1st', '5th', '15th', 'Last day'][Math.floor(Math.random() * 4)],
+            preference: ['Eco-friendly', 'Premium quality', 'Budget', 'Brand name', 'Locally sourced'][Math.floor(Math.random() * 5)]
         };
     });
 
@@ -156,9 +164,15 @@ function handleNodeClick(event, d) {
     document.getElementById('agent-age').innerText = d.age;
     document.getElementById('agent-income').innerText = `$${d.income.toLocaleString()}`;
     document.getElementById('agent-savings').innerText = `$${d.savings.toLocaleString()}`;
-    document.getElementById('agent-risk').innerText = d.riskTolerance.toFixed(2);
-    document.getElementById('agent-brand').innerText = d.brandLoyalty.toFixed(2);
+    document.getElementById('agent-expenses').innerText = `$${d.monthlyExpenses.toLocaleString()}`;
+    document.getElementById('agent-payday').innerText = d.salaryDay;
     document.getElementById('agent-mood').innerText = d.mood;
+    document.getElementById('agent-status').innerText = d.financialStatus;
+    document.getElementById('agent-goal').innerText = d.goal;
+    document.getElementById('agent-need').innerText = d.currentNeed;
+    document.getElementById('agent-buy').innerText = d.recentPurchase;
+    document.getElementById('agent-bad').innerText = d.recentNegativeExperience;
+    document.getElementById('agent-pref').innerText = d.preference;
     
     let actionTxt = d.state.replace('state-', '').toUpperCase();
     if(actionTxt === 'BUY') actionTxt = 'PREORDERED';
@@ -181,7 +195,10 @@ function handleNodeClick(event, d) {
     const price = document.getElementById('price-slider').value;
     const product = document.getElementById('product-name').value;
     
-    document.getElementById('ai-chat-content').innerHTML = `<span class="text-gray-500 animate-pulse">Generating reasoning...</span>`;
+    document.getElementById('ai-why').innerHTML = `<span class="text-gray-500 animate-pulse">Generating reasoning...</span>`;
+    document.getElementById('ai-change').innerText = '...';
+    document.getElementById('ai-conf').innerText = '--';
+    document.getElementById('ai-factor').innerText = '--';
     
     fetch('http://127.0.0.1:8000/generate_chat', {
         method: 'POST',
@@ -193,25 +210,29 @@ function handleNodeClick(event, d) {
             income: d.income,
             product: product,
             price: parseInt(price),
-            state: d.state.replace('state-', '')
+            state: d.state.replace('state-', ''),
+            goal: d.goal,
+            savings: d.savings,
+            financial_status: d.financialStatus,
+            recent_purchase: d.recentPurchase,
+            recent_negative_experience: d.recentNegativeExperience,
+            current_need: d.currentNeed,
+            monthly_expenses: d.monthlyExpenses,
+            salary_day: d.salaryDay,
+            preference: d.preference
         })
     })
     .then(response => response.json())
     .then(data => {
-        document.getElementById('ai-chat-content').innerText = `"${data.chat}"`;
+        document.getElementById('ai-why').innerText = `"${data.why}"`;
+        document.getElementById('ai-change').innerText = `"${data.what_would_change}"`;
+        document.getElementById('ai-conf').innerText = data.confidence;
+        document.getElementById('ai-factor').innerText = data.most_influential_factor;
     })
     .catch(err => {
         console.warn("API failed, using panic mode cache:", err);
-        // Panic Mode Fallback
-        let reason = "";
-        if (d.state === 'state-buy') {
-            reason = `"I've been looking for something exactly like the ${product}. Even at $${price}, my brand loyalty is high and my friends are hyping it up."`;
-        } else if (d.state === 'state-reject') {
-            reason = `"Are they crazy? $${price} is way too much given my current savings. Plus, I saw a terrible review from an influencer I follow."`;
-        } else {
-            reason = `"I'm keeping an eye on this. The price is $${price}, which is steep. I'll wait to see if it goes on sale or if my network buys it first."`;
-        }
-        document.getElementById('ai-chat-content').innerHTML = `<i><span class="text-xs text-orange-500 mb-1 block">[Using cached explanation]</span>${reason}</i>`;
+        document.getElementById('ai-why').innerText = `"Error reaching intelligence engine."`;
+        document.getElementById('ai-change').innerText = `"..."`;
     });
 }
 
@@ -267,25 +288,97 @@ document.getElementById('run-sim-btn').addEventListener('click', async () => {
             
             // Update Scenario A stats
             const buys = nodes.filter(n => n.state === 'state-buy').length;
+            const rejects = nodes.filter(n => n.state === 'state-reject').length;
+            const waits = nodes.filter(n => n.state === 'state-wait').length;
             const adoption = Math.round((buys / NUM_NODES) * 100);
             const rev = buys * price * 1000; // Mock scaling
             
             document.getElementById('scenario-a-adopt').innerText = `${adoption}%`;
             document.getElementById('scenario-a-rev').innerText = `$${(rev/1000000).toFixed(1)}M`;
+            
+            // Trigger Executive Summary
+            const mBudget = parseInt(document.getElementById('marketing-slider').value) * 1000000;
+            const product = document.getElementById('product-name').value;
+            fetch('http://127.0.0.1:8000/executive_summary', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    product: product,
+                    price: price,
+                    marketing_budget: mBudget,
+                    total_buyers: buys,
+                    total_rejectors: rejects,
+                    total_waiting: waits
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('exec-adoption').innerText = data.market_adoption;
+                document.getElementById('exec-revenue').innerText = data.expected_revenue;
+                document.getElementById('exec-risk').innerText = data.risk_score;
+                document.getElementById('exec-summary-text').innerText = data.mckinsey_summary;
+                
+                const strategiesHTML = data.strategies.map(s => `
+                    <div class="bg-gray-800 border ${data.recommended_strategy === s.name ? 'border-accent shadow-md' : 'border-gray-700'} rounded p-3 relative">
+                        ${data.recommended_strategy === s.name ? '<span class="absolute top-0 right-0 bg-accent text-white text-[9px] font-bold px-2 py-0.5 rounded-bl rounded-tr uppercase">Recommended</span>' : ''}
+                        <h4 class="text-white text-sm font-bold mb-1">${s.name}</h4>
+                        <div class="flex justify-between text-xs mb-2">
+                            <span class="text-gray-400">Probability: <span class="text-white">${s.probability}</span></span>
+                            <span class="text-gray-400">Expected: <span class="text-success font-bold">${s.expected_revenue}</span></span>
+                        </div>
+                        <p class="text-xs text-gray-500">${s.reason}</p>
+                    </div>
+                `).join('');
+                document.getElementById('exec-strategies').innerHTML = strategiesHTML;
+                document.getElementById('exec-modal').classList.remove('hidden');
+            });
+            
             return;
         }
 
         document.getElementById('time-slider').value = currentDay;
         document.getElementById('current-day-label').innerText = `Day ${currentDay}`;
 
-        // Simple diffusion mock logic
+        // Deterministic diffusion logic based on memory
         nodes.forEach(n => {
             if (n.state === 'state-wait') {
-                const chance = Math.random();
-                // Higher price = lower chance of buy
-                const threshold = price > 400 ? 0.95 : 0.85;
-                if (chance > threshold) n.state = 'state-buy';
-                else if (chance < 0.1) n.state = 'state-reject';
+                let buyScore = 0;
+                let rejectScore = 0;
+
+                // Affordability
+                if (n.savings > price) buyScore += 2;
+                else if (n.monthlyExpenses > n.income / 12) rejectScore += 3;
+
+                // Mood and Financial Status
+                if (n.mood === 'Optimistic' || n.mood === 'Excited' || n.mood === 'Happy') buyScore += 1;
+                if (n.financialStatus === 'Saving money' || n.financialStatus === 'Struggling') rejectScore += 2;
+                if (n.financialStatus === 'Comfortable' || n.financialStatus === 'Investing heavily') buyScore += 1;
+
+                // Needs and Preferences
+                if (n.currentNeed === 'Phone' || n.currentNeed === 'Status symbol') buyScore += 2;
+                if (n.recentNegativeExperience !== 'None') rejectScore += 1;
+                
+                // Timing (Payday simulation)
+                const isPayday = (n.salaryDay === '1st' && currentDay <= 3) || 
+                                 (n.salaryDay === '5th' && currentDay >= 4 && currentDay <= 6) ||
+                                 (n.salaryDay === '15th' && currentDay >= 14 && currentDay <= 16) ||
+                                 (n.salaryDay === 'Last day' && currentDay >= 28);
+                if (isPayday) buyScore += 2;
+
+                // Price threshold based on preference
+                const perceivedValue = n.preference === 'Premium quality' ? price * 0.8 : price;
+                if (perceivedValue > 800) rejectScore += 2;
+                if (perceivedValue < 300) buyScore += 1;
+
+                // Add some randomness
+                buyScore += Math.random() * 2;
+                rejectScore += Math.random() * 2;
+
+                if (buyScore > 5 && buyScore > rejectScore) {
+                    n.state = 'state-buy';
+                } else if (rejectScore > 4 && rejectScore > buyScore) {
+                    n.state = 'state-reject';
+                }
             }
         });
 
@@ -317,7 +410,15 @@ document.getElementById('export-pdf-btn').addEventListener('click', () => {
         jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
     };
     
-    html2pdf().set(opt).from(element).save().then(() => {
+    html2pdf().set(opt).from(element).outputPdf('blob').then(function(pdfBlob) {
+        const blobUrl = window.URL.createObjectURL(pdfBlob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = 'Simulyn_Report.pdf';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(blobUrl);
         btn.innerHTML = originalText;
     });
 });

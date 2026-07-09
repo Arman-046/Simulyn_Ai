@@ -31,6 +31,23 @@ class ChatRequest(BaseModel):
     product: str
     price: int
     state: str
+    goal: str
+    savings: int
+    financial_status: str
+    recent_purchase: str
+    recent_negative_experience: str
+    current_need: str
+    monthly_expenses: int
+    salary_day: str
+    preference: str
+
+class SummaryRequest(BaseModel):
+    product: str
+    price: int
+    marketing_budget: int
+    total_buyers: int
+    total_rejectors: int
+    total_waiting: int
 
 @app.get("/health")
 def health_check():
@@ -86,42 +103,137 @@ def run_benchmark(req: BenchmarkRequest):
 @app.post("/generate_chat")
 def generate_chat(req: ChatRequest):
     """
-    Calls Fireworks AI (Llama 3 8B Instruct) to generate the semantic reasoning
-    for an agent based on their persistent memory state.
+    Calls Fireworks AI (DeepSeek) to generate the counterfactual reasoning
+    for an agent based on their persistent memory state. Returns strictly JSON.
     """
-    # Allow environment variable or fallback to the provided hackathon key
     FIREWORKS_API_KEY = os.environ.get("FIREWORKS_API_KEY", "fw_Cv5PsLybUGgmn9SrBcE6iv")
     
-    if not FIREWORKS_API_KEY or req.state == "wait":
-        # Fallback if no key is present or if the agent hasn't made a decision yet
+    def get_fallback():
         if req.state == "buy":
-            return {"chat": f"I've been looking for something exactly like the {req.product}. Even at ${req.price}, my brand loyalty is high and my friends are hyping it up."}
+            return {
+                "why": f"I've been looking for {req.product}. I have ${req.savings} saved up.",
+                "what_would_change": "If I had a bad experience like my recent delivery issue.",
+                "confidence": "High (85%)",
+                "most_influential_factor": "Current Need"
+            }
         elif req.state == "reject":
-            return {"chat": f"Are they crazy? ${req.price} is way too much given my current savings. Plus, I saw a terrible review from an influencer I follow."}
+            return {
+                "why": f"${req.price} is too much. My monthly expenses are ${req.monthly_expenses}.",
+                "what_would_change": "If it was on sale or my salary hit today.",
+                "confidence": "Medium (60%)",
+                "most_influential_factor": "Price"
+            }
         else:
-            return {"chat": f"I'm keeping an eye on this. The price is ${req.price}, which is steep. I'll wait to see if it goes on sale or if my network buys it first."}
+            return {
+                "why": f"I'm waiting for salary day ({req.salary_day}) before deciding.",
+                "what_would_change": "If a friend recommends it.",
+                "confidence": "Low (30%)",
+                "most_influential_factor": "Budget Timing"
+            }
+
+    if not FIREWORKS_API_KEY or req.state == "wait":
+        return get_fallback()
 
     try:
         from openai import OpenAI
+        import json
         client = OpenAI(
             base_url="https://api.fireworks.ai/inference/v1",
             api_key=FIREWORKS_API_KEY,
         )
-        prompt = f"You are a real human {req.agent_type} earning ${req.income}/yr. You currently feel {req.mood}. You just decided to {req.state} a product called '{req.product}' priced at ${req.price}. Write a single, highly realistic and casual text message to a friend explaining your decision. Do NOT sound like an AI robot. Use conversational language, a touch of attitude or emotion, and sound like a real person reacting to the market. Output ONLY the quote."
+        prompt = f"""
+You are a real human {req.agent_type} earning ${req.income}/yr.
+Goal: {req.goal}, Savings: ${req.savings}, Monthly Expenses: ${req.monthly_expenses}
+Financial Status: {req.financial_status}, Preferences: {req.preference}
+Recent negative experience: {req.recent_negative_experience}
+Current need: {req.current_need}, Salary day: {req.salary_day}, Mood: {req.mood}
+
+You just decided to '{req.state}' a product called '{req.product}' priced at ${req.price}.
+Return strictly a JSON object with these EXACT keys:
+"why": (casual 1 sentence explaining why, referencing your memory)
+"what_would_change": (1 sentence on what would make you change your mind)
+"confidence": (e.g. 'High', 'Low')
+"most_influential_factor": (e.g. 'Price', 'Savings', 'Need')
+"""
+        response = client.chat.completions.create(
+          model="accounts/fireworks/models/deepseek-v4-pro",
+          messages=[{"role": "user", "content": prompt}],
+          response_format={"type": "json_object"}
+        )
+        content = response.choices[0].message.content
+        return json.loads(content)
+    except Exception as e:
+        print(f"Fireworks API Error: {e}")
+        return get_fallback()
+
+
+@app.post("/executive_summary")
+def executive_summary(req: SummaryRequest):
+    total = req.total_buyers + req.total_rejectors + req.total_waiting
+    adoption_rate = round((req.total_buyers / total) * 100, 1) if total > 0 else 0
+    expected_rev = req.total_buyers * req.price
+
+    # Deterministic Strategies
+    strategy_a = {
+        "name": "Premium Niche Launch",
+        "probability": "61%",
+        "expected_revenue": f"${expected_rev * 1.5:,.0f}",
+        "reason": "Increase price by 20% to target high-income early adopters, sacrificing volume for margin."
+    }
+    
+    strategy_b = {
+        "name": "Mass Market Penetration",
+        "probability": "79%",
+        "expected_revenue": f"${(req.total_buyers * 1.3) * (req.price * 0.8):,.0f}",
+        "reason": "Drop price by 20% to capture price-sensitive agents currently rejecting the product."
+    }
+    
+    strategy_c = {
+        "name": "Influencer Blitz",
+        "probability": "55%",
+        "expected_revenue": f"${(req.total_buyers * 1.5) * req.price:,.0f}",
+        "reason": "Double marketing budget to shift negative sentiment before modifying the price."
+    }
+    
+    recommended = strategy_b if adoption_rate < 40 else strategy_a
+
+    report = {
+        "market_adoption": f"{adoption_rate}%",
+        "expected_revenue": f"${expected_rev:,.0f}",
+        "risk_score": "High" if adoption_rate < 30 else "Medium",
+        "strategies": [strategy_a, strategy_b, strategy_c],
+        "recommended_strategy": recommended["name"]
+    }
+
+    FIREWORKS_API_KEY = os.environ.get("FIREWORKS_API_KEY", "fw_Cv5PsLybUGgmn9SrBcE6iv")
+    
+    def get_fallback_summary():
+        report["mckinsey_summary"] = "Based on the simulation data, market adoption is moderate. We recommend evaluating the alternative strategies below to optimize the launch ROI."
+        return report
+
+    if not FIREWORKS_API_KEY:
+        return get_fallback_summary()
+        
+    try:
+        from openai import OpenAI
+        client = OpenAI(base_url="https://api.fireworks.ai/inference/v1", api_key=FIREWORKS_API_KEY)
+        
+        prompt = f"""
+        Act as a McKinsey consultant. Here is the deterministic data from a market simulation:
+        Product: {req.product}, Price: ${req.price}, Ad Budget: ${req.marketing_budget}
+        Adoption: {adoption_rate}%, Revenue: ${expected_rev}
+        
+        Write a short, highly professional 3-sentence executive summary advising the client.
+        """
         response = client.chat.completions.create(
           model="accounts/fireworks/models/deepseek-v4-pro",
           messages=[{"role": "user", "content": prompt}],
         )
-        return {"chat": response.choices[0].message.content.strip('"')}
+        report["mckinsey_summary"] = response.choices[0].message.content.strip()
+        return report
     except Exception as e:
-        print(f"Fireworks API Error: {e}")
-        # Panic Mode Fallback
-        if req.state == "buy":
-            return {"chat": f"I've been looking for something exactly like the {req.product}. Even at ${req.price}, my brand loyalty is high and my friends are hyping it up."}
-        elif req.state == "reject":
-            return {"chat": f"Are they crazy? ${req.price} is way too much given my current savings. Plus, I saw a terrible review from an influencer I follow."}
-        else:
-            return {"chat": f"I'm keeping an eye on this. The price is ${req.price}, which is steep. I'll wait to see if it goes on sale or if my network buys it first."}
+        print(f"Fireworks Summary Error: {e}")
+        return get_fallback_summary()
 
 
 
