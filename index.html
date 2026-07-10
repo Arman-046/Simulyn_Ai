@@ -55,14 +55,15 @@
         * { box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background: #080a0f; color: #e2e8f0; overflow: hidden; }
 
-        /* D3 Graph Nodes */
-        .node-consumer { fill: #4b5563; transition: fill 0.4s ease; }
-        .node-retailer { fill: #3b82f6; stroke: #60a5fa; stroke-width: 1.5px; }
-        .node-influencer { fill: #8b5cf6; stroke: #a78bfa; stroke-width: 2px; }
-        .link { stroke: #1e2332; stroke-opacity: 0.8; stroke-width: 0.8; }
-        .state-buy { fill: #10b981; filter: drop-shadow(0 0 6px rgba(16,185,129,0.8)); transition: fill 0.5s ease; }
-        .state-reject { fill: #ef4444; filter: drop-shadow(0 0 4px rgba(239,68,68,0.6)); transition: fill 0.5s ease; }
-        .state-wait { fill: #4b5563; }
+        /* Premium D3 Graph Nodes (Apple Aesthetic) */
+        .node-consumer { fill: #1f2937; stroke: #374151; stroke-width: 1px; transition: all 0.4s ease; }
+        .node-retailer { fill: #1d4ed8; stroke: #60a5fa; stroke-width: 2px; filter: drop-shadow(0 0 8px rgba(96,165,250,0.5)); transition: all 0.4s ease; }
+        .node-influencer { fill: #6d28d9; stroke: #a78bfa; stroke-width: 2px; filter: drop-shadow(0 0 8px rgba(167,139,250,0.5)); transition: all 0.4s ease; }
+        .link { stroke: rgba(255,255,255,0.04); stroke-width: 1px; }
+        
+        .state-buy { fill: #059669; stroke: #34d399; stroke-width: 1.5px; filter: drop-shadow(0 0 12px rgba(52,211,153,0.8)); transition: all 0.5s ease; }
+        .state-reject { fill: #b91c1c; stroke: #f87171; stroke-width: 1.5px; filter: drop-shadow(0 0 12px rgba(248,113,113,0.8)); transition: all 0.5s ease; }
+        .state-wait { fill: #1f2937; stroke: #374151; stroke-width: 1px; }
 
         /* Glass panels */
         .glass { background: rgba(15, 18, 25, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.06); }
@@ -295,7 +296,7 @@
 
     <!-- ===================== WORKSPACE (Hidden initially) ===================== -->
     <div id="workspace" class="hidden flex-1 overflow-hidden" style="opacity: 0;">
-        <div class="flex h-full">
+        <div class="flex w-full h-full">
 
             <!-- LEFT: Brief + Assumptions -->
             <aside id="left-panel" class="w-[300px] glass border-r border-[#1e2332] flex flex-col shrink-0 z-10" style="opacity:0; transform: translateX(-24px);">
