@@ -300,12 +300,12 @@
             <!-- LEFT: Brief + Assumptions -->
             <aside id="left-panel" class="w-[300px] glass border-r border-[#1e2332] flex flex-col shrink-0 z-10" style="opacity:0; transform: translateX(-24px);">
                 <!-- Brief Header -->
-                <div class="px-4 py-3 border-b border-[#1e2332] flex items-center justify-between shrink-0">
+                <div class="px-5 py-4 border-b border-[#1e2332] flex items-center justify-between shrink-0">
                     <div>
-                        <div class="text-[10px] text-muted uppercase tracking-widest mb-0.5">AI Business Brief</div>
-                        <div id="brief-product-name" class="text-sm font-bold text-white">—</div>
+                        <div class="text-xs text-muted uppercase tracking-widest mb-1 font-medium">AI Business Brief</div>
+                        <div id="brief-product-name" class="text-base font-bold text-white">—</div>
                     </div>
-                    <div id="brief-confidence-badge" class="hidden bg-success/10 text-success text-[10px] font-bold px-2 py-1 rounded-full border border-success/20">
+                    <div id="brief-confidence-badge" class="hidden bg-success/10 text-success text-xs font-bold px-2.5 py-1.5 rounded-full border border-success/20">
                         <span id="brief-confidence-value">—</span>
                     </div>
                 </div>
@@ -316,10 +316,10 @@
                 </div>
 
                 <!-- Simulation Status -->
-                <div class="px-4 py-3 border-b border-[#1e2332] shrink-0">
+                <div class="px-5 py-4 border-b border-[#1e2332] shrink-0">
                     <div class="flex justify-between items-center mb-2">
-                        <span class="text-[10px] text-muted uppercase tracking-widest">Simulation Progress</span>
-                        <span id="timeline-day-display" class="text-[11px] font-bold text-accent">Day 0 / 30</span>
+                        <span class="text-xs text-muted uppercase tracking-widest font-medium">Simulation Progress</span>
+                        <span id="timeline-day-display" class="text-sm font-bold text-accent">Day 0 / 30</span>
                     </div>
                     <div class="w-full bg-[#1e2332] h-1.5 rounded-full overflow-hidden">
                         <div id="timeline-progress" class="progress-gradient h-full w-0 rounded-full transition-all duration-500"></div>
@@ -336,24 +336,24 @@
                 </div>
 
                 <!-- Live Metrics -->
-                <div class="px-4 py-3 border-b border-[#1e2332] shrink-0">
-                    <div class="grid grid-cols-2 gap-3">
+                <div class="px-5 py-4 border-b border-[#1e2332] shrink-0">
+                    <div class="grid grid-cols-2 gap-5">
                         <div>
-                            <div class="text-[10px] text-muted uppercase tracking-widest mb-1">Revenue</div>
-                            <div id="total-revenue" class="text-base font-bold text-white">$0</div>
-                            <div id="revenue-confidence" class="text-[10px] text-muted">—</div>
+                            <div class="text-xs text-muted uppercase tracking-widest mb-1.5 font-medium">Revenue</div>
+                            <div id="total-revenue" class="text-xl font-bold text-white">$0</div>
+                            <div id="revenue-confidence" class="text-xs text-muted">—</div>
                         </div>
                         <div>
-                            <div class="text-[10px] text-muted uppercase tracking-widest mb-1">Adoption</div>
-                            <div id="adoption-rate" class="text-base font-bold text-success">0%</div>
+                            <div class="text-xs text-muted uppercase tracking-widest mb-1.5 font-medium">Adoption</div>
+                            <div id="adoption-rate" class="text-xl font-bold text-success">0%</div>
                         </div>
                         <div>
-                            <div class="text-[10px] text-muted uppercase tracking-widest mb-1">Buyers</div>
-                            <div id="buyer-count" class="text-sm font-bold text-white">0</div>
+                            <div class="text-xs text-muted uppercase tracking-widest mb-1.5 font-medium">Buyers</div>
+                            <div id="buyer-count" class="text-base font-bold text-white">0</div>
                         </div>
                         <div>
-                            <div class="text-[10px] text-muted uppercase tracking-widest mb-1">Rejectors</div>
-                            <div id="rejector-count" class="text-sm font-bold text-white">0</div>
+                            <div class="text-xs text-muted uppercase tracking-widest mb-1.5 font-medium">Rejectors</div>
+                            <div id="rejector-count" class="text-base font-bold text-white">0</div>
                         </div>
                     </div>
                 </div>
@@ -384,40 +384,40 @@
                 <main id="graph-container" class="flex-1 relative" style="background: radial-gradient(ellipse at center, #0d1020 0%, #080a0f 70%);">
                     <!-- Subtle grid overlay -->
                     <div class="absolute inset-0 pointer-events-none" style="background-image: linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px); background-size: 40px 40px;"></div>
+                    
+                    <!-- Floating Narrative Events (HUD) -->
+                    <div class="absolute bottom-6 left-6 w-[340px] glass border border-[#1e2332] rounded-xl flex flex-col shadow-2xl z-20 max-h-[300px]">
+                        <div class="px-4 py-3 border-b border-[#1e2332] shrink-0 bg-white/5">
+                            <div class="text-xs text-muted uppercase tracking-widest font-medium">Narrative Events</div>
+                        </div>
+                        <ul id="timeline-events-list" class="flex-1 overflow-y-auto p-4 space-y-3 panel-scroll"></ul>
+                    </div>
                 </main>
-
-                <!-- BOTTOM: Charts + Events -->
-                <div class="h-56 glass border-t border-[#1e2332] shrink-0 flex">
-                    <!-- Events Feed -->
-                    <div class="w-64 border-r border-[#1e2332] px-4 py-3 flex flex-col shrink-0">
-                        <div class="text-[10px] text-muted uppercase tracking-widest mb-2">Narrative Events</div>
-                        <ul id="timeline-events-list" class="flex-1 overflow-y-auto space-y-2 pr-1 panel-scroll"></ul>
-                    </div>
-
-                    <!-- Charts -->
-                    <div class="flex-1 grid grid-cols-2 gap-0">
-                        <div class="border-r border-[#1e2332] px-4 py-3 flex flex-col">
-                            <div class="text-[10px] text-muted uppercase tracking-widest mb-2">Revenue Curve ($)</div>
-                            <div class="flex-1 relative"><canvas id="revenueChart"></canvas></div>
-                        </div>
-                        <div class="px-4 py-3 flex flex-col">
-                            <div class="text-[10px] text-muted uppercase tracking-widest mb-2">Market Adoption (%)</div>
-                            <div class="flex-1 relative"><canvas id="sentimentChart"></canvas></div>
-                        </div>
-                    </div>
-                </div>
             </div>
 
-            <!-- RIGHT: Entity Inspector -->
-            <aside id="right-panel" class="w-[300px] glass border-l border-[#1e2332] flex flex-col shrink-0 z-10 panel-scroll" style="opacity:0; transform: translateX(24px);">
-                <div class="px-4 py-3 border-b border-[#1e2332] shrink-0">
-                    <div class="text-[10px] text-muted uppercase tracking-widest">Entity Inspector</div>
-                    <div class="text-[11px] text-muted mt-0.5">Click any node to inspect</div>
+            <!-- RIGHT: Charts & Entity Inspector -->
+            <aside id="right-panel" class="w-[380px] glass border-l border-[#1e2332] flex flex-col shrink-0 z-10 panel-scroll" style="opacity:0; transform: translateX(24px);">
+                <!-- Simulation Analytics Charts -->
+                <div class="px-5 py-4 border-b border-[#1e2332] flex flex-col gap-6 shrink-0">
+                    <div class="flex flex-col h-[180px]">
+                        <div class="text-xs text-muted uppercase tracking-widest mb-2 font-medium">Revenue Curve ($)</div>
+                        <div class="flex-1 relative"><canvas id="revenueChart"></canvas></div>
+                    </div>
+                    <div class="flex flex-col h-[180px]">
+                        <div class="text-xs text-muted uppercase tracking-widest mb-2 font-medium">Market Adoption (%)</div>
+                        <div class="flex-1 relative"><canvas id="sentimentChart"></canvas></div>
+                    </div>
                 </div>
-                <div id="inspector-content" class="p-4 flex-1 flex flex-col items-center justify-center">
+
+                <!-- Entity Inspector -->
+                <div class="px-5 py-4 border-b border-[#1e2332] shrink-0 bg-white/5">
+                    <div class="text-xs text-muted uppercase tracking-widest font-medium">Entity Inspector</div>
+                    <div class="text-sm text-muted mt-1">Click any node to inspect AI reasoning</div>
+                </div>
+                <div id="inspector-content" class="p-5 flex-1 flex flex-col items-center justify-center">
                     <div class="text-center">
-                        <svg class="w-10 h-10 text-[#1e2332] mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
-                        <p class="text-xs text-muted">Select an agent node<br>to view AI reasoning</p>
+                        <svg class="w-12 h-12 text-[#1e2332] mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+                        <p class="text-sm text-muted">Select an agent node<br>to view AI reasoning</p>
                     </div>
                 </div>
             </aside>
