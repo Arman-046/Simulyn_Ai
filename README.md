@@ -17,8 +17,26 @@ We migrated the entire core simulation loop into a PyTorch backend (`backend/eng
 
 ## 🛠️ Tech Stack & Architecture
 - **Backend**: FastAPI & PyTorch (`backend/engine.py` handles the tensor simulation).
+- **Hardware Acceleration**: AMD Instinct / ROCm native.
 - **Frontend**: D3.js (Force-directed network visualization), Vanilla JS/CSS (responsive glassmorphism UI).
 - **AI/LLM**: Fireworks AI API for unstructured text extraction and executive report generation.
+
+```mermaid
+graph TD
+    %% Styling
+    classDef frontend fill:#0f1219,stroke:#6366f1,stroke-width:2px,color:#fff
+    classDef backend fill:#0d1020,stroke:#10b981,stroke-width:2px,color:#fff
+    classDef hardware fill:#ed1c24,stroke:#fff,stroke-width:2px,color:#fff
+    classDef ai fill:#f59e0b,stroke:#fff,stroke-width:2px,color:#fff
+
+    A["User Input (Text Scenario)"]:::frontend --> B["Fireworks AI (DeepSeek)"]:::ai
+    B -->|Extracts Market Data| C["FastAPI Backend"]:::backend
+    C -->|Builds Agent Tensors| D["PyTorch Simulation Engine"]:::backend
+    D -->|O(N²) Matrix Math| E["AMD ROCm / Instinct GPU"]:::hardware
+    E -->|Accelerated Results| D
+    D -->|Daily Adoption States| F["D3.js Force-Directed Graph"]:::frontend
+    F -->|Visualizes Economy| G["Executive Report (LLM)"]:::frontend
+```
 
 ## 🏁 Quickstart
 
