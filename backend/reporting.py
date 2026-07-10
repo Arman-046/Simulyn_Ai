@@ -152,18 +152,21 @@ Generate professional HTML with these sections:
 4. Key simulation events (if provided)
 5. 3 numbered strategic recommendations (specific to this product/market/data)
 
-Use the actual numbers above — NO generic placeholders. Output ONLY raw HTML, no markdown."""
+Use the actual numbers above — NO generic placeholders. Output ONLY raw HTML, no markdown. DO NOT output any thought process, preamble, or <think> blocks."""
 
         response = client.chat.completions.create(
             model=MODEL_NAME,
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=1500,
+            max_tokens=2500,
             temperature=0.2,
         )
         html = response.choices[0].message.content.strip()
         
-        # Extract HTML block if the model outputs thinking first
+        # Remove any <think> blocks if a reasoning model produced them
         import re
+        html = re.sub(r'<think>.*?</think>', '', html, flags=re.IGNORECASE | re.DOTALL).strip()
+        
+        # Extract HTML block if the model outputs inside markdown
         html_match = re.search(r'```(?:html)?\s*(<div.*)\s*```', html, re.IGNORECASE | re.DOTALL)
         if html_match:
             html = html_match.group(1).strip()
