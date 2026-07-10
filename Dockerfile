@@ -10,11 +10,11 @@ COPY requirements.txt .
 # Remove torch from requirements.txt temporarily for the docker build so it doesn't overwrite the ROCm version
 RUN grep -v "torch" requirements.txt > req_no_torch.txt && pip install --no-cache-dir -r req_no_torch.txt
 
-# Copy source code
-COPY main.py .
+# Copy backend source code
+COPY backend/ ./backend/
 
 # Expose FastAPI port
 EXPOSE 8000
 
 # Run FastAPI server
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
