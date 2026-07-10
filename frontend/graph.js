@@ -194,9 +194,8 @@ export function initGraph(onNodeClick) {
         .attr('width', W).attr('height', H)
         .style('position', 'absolute').style('inset', '0');
 
-    // Zoom support
+    // Zoom removed per user request
     zoomGroup = svgEl.append('g');
-    svgEl.call(d3.zoom().scaleExtent([0.1, 5]).on('zoom', e => zoomGroup.attr('transform', e.transform)));
 
     linkGroup = zoomGroup.append('g')
         .selectAll('line').data(links).enter().append('line')
@@ -204,7 +203,7 @@ export function initGraph(onNodeClick) {
 
     nodeGroup = zoomGroup.append('g')
         .selectAll('circle').data(nodes).enter().append('circle')
-        .attr('r', d => d.type === 'influencer' ? 9 : d.type === 'retailer' ? 11 : 4.5)
+        .attr('r', d => d.type === 'influencer' ? 7 : d.type === 'retailer' ? 9 : 3.5)
         .attr('class', d => `node-${d.type} ${d.state}`)
         .style('cursor', 'pointer')
         .on('click', (_, d) => onNodeClick(d))
@@ -228,10 +227,11 @@ export function initGraph(onNodeClick) {
             .on('end', (e, d) => { if (!e.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; }));
 
     simulation = d3.forceSimulation(nodes)
-        .force('link', d3.forceLink(links).distance(28).strength(0.3))
-        .force('charge', d3.forceManyBody().strength(-25))
+        .force('link', d3.forceLink(links).distance(40).strength(0.15))
+        .force('charge', d3.forceManyBody().strength(-35))
         .force('center', d3.forceCenter(W / 2, H / 2))
-        .force('collision', d3.forceCollide(8))
+        .force('collision', d3.forceCollide(9))
+        .alphaDecay(0.04) // Cools down faster to reduce animation heaviness
         .on('tick', () => {
             linkGroup.attr('x1', d => d.source.x).attr('y1', d => d.source.y)
                 .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
