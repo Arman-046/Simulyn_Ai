@@ -60,3 +60,13 @@ export async function runBenchmark(numNodes) {
     if (!res.ok) throw new Error('API Error');
     return res.json();
 }
+
+export async function runSimulation(payload) {
+    const res = await fetch(`${API_BASE}/simulate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error('Simulation API Error');
+    return res.json();
+}

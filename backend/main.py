@@ -2,11 +2,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from .models import ScenarioExtractRequest, BenchmarkRequest, ChatRequest, SummaryRequest
+from .models import ScenarioExtractRequest, BenchmarkRequest, ChatRequest, SummaryRequest, SimulationRequest
 from .extraction import extract_scenario_data
 from .explainability import explain_decision
 from .reporting import generate_report
 from .simulation import run_benchmark
+from .engine import run_pytorch_simulation
 
 try:
     import torch
@@ -42,3 +43,7 @@ def generate_chat(req: ChatRequest):
 def executive_summary(req: SummaryRequest):
     html = generate_report(req)
     return {"report_html": html}
+
+@app.post("/api/simulate")
+def simulate(req: SimulationRequest):
+    return run_pytorch_simulation(req)

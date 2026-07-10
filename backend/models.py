@@ -41,3 +41,9 @@ class SummaryRequest(BaseModel):
     total_waiting: int
     revenue: float
     timeline_events: Optional[List[Any]] = None
+
+class SimulationRequest(BaseModel):
+    price: float
+    marketing_budget: float
+    agents: List[Dict[str, Any]]
+    links: List[Dict[str, Any]]

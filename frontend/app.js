@@ -97,8 +97,8 @@ async function processScenario(scenarioText) {
                 }, 400);
             }
 
-            // Initialize scenario-specific simulation (also re-generates agents)
-            initSimulation(data, (nodeData) => handleNodeClick(nodeData, currentScenarioData));
+            // Initialize scenario-specific simulation (calls PyTorch backend)
+            await initSimulation(data, (nodeData) => handleNodeClick(nodeData, currentScenarioData));
 
             // Auto-start simulation after brief delay
             const product = data.product_name?.value || 'product';
