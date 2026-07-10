@@ -1,313 +1,457 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulyn | Synthetic Economy Platform</title>
+    <title>Simulyn — AI Decision Intelligence</title>
+    <meta name="description" content="Simulate strategic decisions inside a realistic Synthetic Economy before making them in the real world.">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
-            darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
-                        dark: '#0f1115',
-                        panel: '#1a1d24',
-                        accent: '#ff4a5a',
-                        success: '#22c55e',
-                        warning: '#eab308'
+                        dark: '#080a0f',
+                        panel: '#0f1219',
+                        surface: '#141820',
+                        border: '#1e2332',
+                        accent: '#6366f1',
+                        'accent-light': '#818cf8',
+                        success: '#10b981',
+                        warning: '#f59e0b',
+                        danger: '#ef4444',
+                        muted: '#4b5563',
+                        subtle: '#374151'
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    animation: {
+                        'fade-up': 'fadeUp 0.6s ease forwards',
+                        'fade-in': 'fadeIn 0.4s ease forwards',
+                        'slide-right': 'slideRight 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'slide-left': 'slideLeft 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'slide-up': 'slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'pulse-slow': 'pulse 3s ease-in-out infinite',
+                        'shimmer': 'shimmer 2s linear infinite',
+                        'glow': 'glow 2s ease-in-out infinite alternate',
+                    },
+                    keyframes: {
+                        fadeUp: { '0%': { opacity: 0, transform: 'translateY(16px)' }, '100%': { opacity: 1, transform: 'translateY(0)' } },
+                        fadeIn: { '0%': { opacity: 0 }, '100%': { opacity: 1 } },
+                        slideRight: { '0%': { opacity: 0, transform: 'translateX(-24px)' }, '100%': { opacity: 1, transform: 'translateX(0)' } },
+                        slideLeft: { '0%': { opacity: 0, transform: 'translateX(24px)' }, '100%': { opacity: 1, transform: 'translateX(0)' } },
+                        slideUp: { '0%': { opacity: 0, transform: 'translateY(24px)' }, '100%': { opacity: 1, transform: 'translateY(0)' } },
+                        shimmer: { '0%': { backgroundPosition: '-200% 0' }, '100%': { backgroundPosition: '200% 0' } },
+                        glow: { '0%': { boxShadow: '0 0 20px rgba(99,102,241,0.2)' }, '100%': { boxShadow: '0 0 40px rgba(99,102,241,0.6)' } },
                     }
                 }
             }
         }
     </script>
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #0f1115; color: #e2e8f0; }
-        .node-consumer { fill: #94a3b8; }
-        .node-retailer { fill: #3b82f6; stroke: #60a5fa; stroke-width: 2px; }
-        .node-influencer { fill: #a855f7; stroke: #d8b4fe; stroke-width: 2px; }
-        .node-news { fill: #f59e0b; stroke: #fde68a; stroke-width: 2px; }
-        .link { stroke: #334155; stroke-opacity: 0.6; }
-        .state-buy { fill: #22c55e; filter: drop-shadow(0 0 4px #22c55e); }
-        .state-reject { fill: #ef4444; filter: drop-shadow(0 0 4px #ef4444); }
-        .state-wait { fill: #eab308; }
-        .progress-bar-bg { background-color: #334155; border-radius: 9999px; height: 6px; width: 100%; overflow: hidden; }
-        .progress-bar-fill { background-color: #3b82f6; height: 100%; }
-        /* D3 tooltip */
-        #tooltip { position: absolute; opacity: 0; background: #1e293b; padding: 8px; border-radius: 4px; pointer-events: none; font-size: 12px; z-index: 50; }
+        * { box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #080a0f; color: #e2e8f0; overflow: hidden; }
+
+        /* D3 Graph Nodes */
+        .node-consumer { fill: #4b5563; transition: fill 0.4s ease; }
+        .node-retailer { fill: #3b82f6; stroke: #60a5fa; stroke-width: 1.5px; }
+        .node-influencer { fill: #8b5cf6; stroke: #a78bfa; stroke-width: 2px; }
+        .link { stroke: #1e2332; stroke-opacity: 0.8; stroke-width: 0.8; }
+        .state-buy { fill: #10b981; filter: drop-shadow(0 0 6px rgba(16,185,129,0.8)); transition: fill 0.5s ease; }
+        .state-reject { fill: #ef4444; filter: drop-shadow(0 0 4px rgba(239,68,68,0.6)); transition: fill 0.5s ease; }
+        .state-wait { fill: #4b5563; }
+
+        /* Glass panels */
+        .glass { background: rgba(15, 18, 25, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.06); }
+        .glass-bright { background: rgba(20, 24, 32, 0.95); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
+
+        /* Shimmer loading effect */
+        .shimmer-text {
+            background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s linear infinite;
+            border-radius: 4px;
+            color: transparent;
+        }
+
+        /* App Sections */
+        #welcome-screen { transition: opacity 0.5s ease, transform 0.5s ease; }
+        #workspace { transition: opacity 0.5s ease; }
+
+        /* Tooltip */
+        #d3-tooltip {
+            position: fixed; opacity: 0; pointer-events: none; z-index: 999;
+            background: rgba(20,24,32,0.97); border: 1px solid rgba(255,255,255,0.08);
+            padding: 8px 12px; border-radius: 8px; font-size: 12px;
+            transition: opacity 0.2s ease;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #1e2332; border-radius: 2px; }
+
+        /* Node legend dot */
+        .legend-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+        /* Brief field animation */
+        .brief-field { opacity: 0; animation: fadeUp 0.4s ease forwards; }
+
+        /* Template card hover */
+        .template-card { transition: all 0.25s ease; cursor: pointer; }
+        .template-card:hover { border-color: rgba(99,102,241,0.5) !important; background: rgba(99,102,241,0.06) !important; transform: translateY(-2px); }
+
+        /* Progress bar gradient */
+        .progress-gradient { background: linear-gradient(90deg, #6366f1, #8b5cf6); }
+
+        /* Inspector states */
+        .decision-adopted { color: #10b981; }
+        .decision-rejected { color: #ef4444; }
+        .decision-waiting { color: #f59e0b; }
+
+        /* Scrollable panels */
+        .panel-scroll { overflow-y: auto; }
+        .panel-scroll::-webkit-scrollbar { width: 3px; }
     </style>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
-<body class="h-screen w-screen flex flex-col overflow-hidden">
-    
-    <!-- Top Nav -->
-    <header class="h-14 bg-panel border-b border-gray-800 flex items-center justify-between px-6 shrink-0">
-        <div class="flex items-center gap-2">
-            <div class="w-6 h-6 bg-accent rounded-sm rotate-45"></div>
-            <span class="font-bold text-xl tracking-tight text-white ml-2">Simulyn</span>
-            <span class="text-xs text-gray-500 ml-2 mt-1 uppercase tracking-widest">Synthetic Economy</span>
+<body class="h-screen w-screen flex flex-col">
+
+    <!-- ===================== TOP NAV ===================== -->
+    <header class="h-12 glass border-b border-[#1e2332] flex items-center justify-between px-6 shrink-0 z-30">
+        <div class="flex items-center gap-3">
+            <div class="w-7 h-7 rounded-lg bg-accent flex items-center justify-center">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            </div>
+            <span class="font-bold text-[15px] tracking-tight text-white">Simulyn</span>
+            <span class="hidden sm:inline-block text-[10px] text-muted uppercase tracking-widest border border-[#1e2332] px-2 py-0.5 rounded-full">AI Decision Intelligence</span>
         </div>
-        <nav class="flex gap-6 text-sm font-medium">
-            <a href="#" class="text-white border-b-2 border-accent pb-4 pt-4">Products</a>
-            <a href="#" class="text-gray-500 cursor-not-allowed pt-4">Government Policy <span class="text-[10px] bg-gray-800 px-1 rounded ml-1">SOON</span></a>
-            <a href="#" class="text-gray-500 cursor-not-allowed pt-4">Supply Chain <span class="text-[10px] bg-gray-800 px-1 rounded ml-1">SOON</span></a>
-            <a href="#" class="text-gray-500 cursor-not-allowed pt-4">Healthcare <span class="text-[10px] bg-gray-800 px-1 rounded ml-1">SOON</span></a>
-        </nav>
-        <div class="text-xs font-mono text-gray-400 bg-gray-900 px-3 py-1 rounded">System: Online</div>
+
+        <div id="nav-simulation-controls" class="hidden items-center gap-3">
+            <div class="flex items-center gap-2 text-xs text-muted">
+                <span class="w-2 h-2 rounded-full bg-success inline-block animate-pulse"></span>
+                <span id="nav-product-label">Simulation Active</span>
+            </div>
+            <button id="nav-report-btn" class="hidden bg-accent hover:bg-accent-light text-white text-xs font-semibold px-4 py-1.5 rounded-lg transition-all duration-200">
+                View Report
+            </button>
+        </div>
+
+        <div class="flex items-center gap-4">
+            <button id="gpu-benchmark-btn" title="Run AMD GPU Benchmark" class="flex items-center gap-1.5 text-[11px] font-mono text-muted hover:text-white border border-[#1e2332] hover:border-accent/40 rounded-lg px-3 py-1 transition-all duration-200">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
+                GPU Benchmark
+            </button>
+            <div id="system-status" class="text-[11px] font-mono text-success flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 bg-success rounded-full"></span> Engine Online
+            </div>
+        </div>
     </header>
 
-    <!-- Main Workspace -->
-    <div class="flex flex-1 overflow-hidden">
-        
-        <!-- Left Sidebar: Scenario Setup -->
-        <aside class="w-80 bg-panel border-r border-gray-800 flex flex-col p-5 shrink-0 overflow-y-auto">
-            <h2 class="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">Scenario Setup</h2>
-            
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-xs font-medium text-gray-400 mb-1">Launch Product</label>
-                    <input type="text" id="product-name" value="$500 Smart Toaster" class="w-full bg-dark border border-gray-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-accent">
-                </div>
-                
-                <div>
-                    <div class="flex justify-between">
-                        <label class="block text-xs font-medium text-gray-400 mb-1">Price Point</label>
-                        <span id="price-val" class="text-xs text-white">$500</span>
-                    </div>
-                    <input type="range" id="price-slider" min="10" max="2000" value="500" class="w-full accent-accent">
-                </div>
-
-                <div>
-                    <div class="flex justify-between">
-                        <label class="block text-xs font-medium text-gray-400 mb-1">Marketing Budget</label>
-                        <span id="marketing-val" class="text-xs text-white">$2.5M</span>
-                    </div>
-                    <input type="range" id="marketing-slider" min="0" max="10" step="0.1" value="2.5" class="w-full accent-accent">
-                </div>
-                
-                <div>
-                    <div class="flex justify-between">
-                        <label class="block text-xs font-medium text-gray-400 mb-1">Initial Sentiment</label>
-                        <span id="sentiment-val" class="text-xs text-white">Neutral (0)</span>
-                    </div>
-                    <input type="range" id="sentiment-slider" min="-1" max="1" step="0.1" value="0" class="w-full accent-accent">
-                </div>
-            </div>
-
-            <button id="run-sim-btn" class="mt-6 w-full bg-accent hover:bg-red-500 text-white font-semibold py-2 rounded transition-colors shadow-[0_0_15px_rgba(255,74,90,0.4)]">
-                Run Simulation
-            </button>
-            
-            <hr class="border-gray-800 my-6">
-
-            <h2 class="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">Decision Comparison</h2>
-            
-            <!-- Scenario A -->
-            <div class="bg-dark p-3 rounded border border-gray-800 mb-3 relative overflow-hidden">
-                <div class="absolute top-0 left-0 w-1 h-full bg-gray-600"></div>
-                <h3 class="text-xs font-bold text-gray-300">Scenario A (Current)</h3>
-                <div class="flex justify-between text-xs mt-2">
-                    <span class="text-gray-500">Adoption:</span>
-                    <span id="scenario-a-adopt" class="text-white font-mono">--%</span>
-                </div>
-                <div class="flex justify-between text-xs mt-1">
-                    <span class="text-gray-500">Est. Revenue:</span>
-                    <span id="scenario-a-rev" class="text-white font-mono">$0</span>
-                </div>
-            </div>
-
-            <!-- Scenario B -->
-            <div class="bg-dark p-3 rounded border border-gray-800 relative overflow-hidden opacity-50 cursor-not-allowed mb-6">
-                <div class="absolute top-0 left-0 w-1 h-full bg-accent"></div>
-                <h3 class="text-xs font-bold text-gray-300">Scenario B (Save & Compare)</h3>
-                <div class="text-xs mt-2 text-gray-500 italic">Run simulation first to unlock</div>
-            </div>
-
-            <!-- Export Report -->
-            <button id="export-pdf-btn" class="w-full bg-transparent border border-gray-600 hover:border-gray-400 text-gray-300 text-xs font-semibold py-2 rounded transition-colors flex items-center justify-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                Export Simulation Report (PDF)
-            </button>
-
-        </aside>
-
-        <!-- Center: Simulation Graph -->
-        <main class="flex-1 flex flex-col relative bg-dark">
-            <!-- AMD Benchmark Panel Floating -->
-            <div class="absolute top-4 left-4 bg-panel/90 backdrop-blur border border-gray-800 p-3 rounded shadow-lg z-10 w-64">
-                <div class="flex items-center gap-2 mb-2">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/7/7c/AMD_Logo.svg" alt="AMD" class="h-3 filter grayscale brightness-200">
-                    <span class="text-xs font-bold text-white">Measured Runtime</span>
-                </div>
-                <div class="space-y-2 text-xs font-mono">
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-400">CPU Matrix Math:</span>
-                        <span id="cpu-time" class="text-gray-500">Waiting...</span>
-                    </div>
-                    <div class="flex justify-between items-center border-t border-gray-700 pt-1">
-                        <span class="text-orange-400 font-bold">AMD GPU (ROCm):</span>
-                        <span id="gpu-time" class="text-white font-bold">Waiting...</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- D3 Canvas -->
-            <div id="graph-container" class="flex-1 relative cursor-crosshair"></div>
-            <div id="tooltip"></div>
-
-            <!-- Time Slider Panel -->
-            <div class="h-20 bg-panel border-t border-gray-800 p-4 shrink-0 flex flex-col justify-center">
-                <div class="flex justify-between text-xs font-bold text-gray-400 mb-2">
-                    <span>Day 1 (Launch)</span>
-                    <span id="current-day-label" class="text-white">Day 1</span>
-                    <span>Day 30</span>
-                </div>
-                <input type="range" id="time-slider" min="1" max="30" value="1" disabled class="w-full accent-gray-500 cursor-not-allowed">
-            </div>
-        </main>
-
-        <!-- Right Sidebar: Agent Explainability -->
-        <aside class="w-80 bg-panel border-l border-gray-800 flex flex-col shrink-0">
-            <!-- Persistent Memory -->
-            <div class="p-5 border-b border-gray-800 h-1/2 overflow-y-auto">
-                <h2 class="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-1">Entity State</h2>
-                <p class="text-[10px] text-gray-500 mb-4">Click a node to inspect persistent memory</p>
-                
-                <div id="agent-empty" class="text-sm text-gray-600 italic text-center mt-10">No entity selected.</div>
-                
-                <div id="agent-details" class="hidden">
-                    <div class="flex items-center gap-3 mb-4">
-                        <div id="agent-avatar" class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center font-bold text-white">ID</div>
-                        <div>
-                            <div id="agent-type" class="text-xs text-accent uppercase font-bold tracking-wide">Consumer</div>
-                            <div id="agent-id" class="text-lg font-bold text-white">Agent #402</div>
-                        </div>
-                    </div>
-                    
-                    <div class="grid grid-cols-2 gap-y-2 gap-x-2 text-[11px]">
-                        <div class="text-gray-500">Age: <span id="agent-age" class="text-white font-medium">--</span></div>
-                        <div class="text-gray-500">Income: <span id="agent-income" class="text-white font-medium">--</span></div>
-                        <div class="text-gray-500">Savings: <span id="agent-savings" class="text-white font-medium">--</span></div>
-                        <div class="text-gray-500">Expenses: <span id="agent-expenses" class="text-white font-medium">--</span></div>
-                        <div class="text-gray-500">Payday: <span id="agent-payday" class="text-white font-medium">--</span></div>
-                        <div class="text-gray-500">Mood: <span id="agent-mood" class="text-white font-medium">--</span></div>
-                        <div class="text-gray-500">Status: <span id="agent-status" class="text-white font-medium">--</span></div>
-                    </div>
-                    
-                    <div class="mt-3 space-y-2 text-[11px]">
-                        <div class="text-gray-500">Goal: <span id="agent-goal" class="text-white font-medium">--</span></div>
-                        <div class="text-gray-500">Current Need: <span id="agent-need" class="text-white font-medium">--</span></div>
-                        <div class="text-gray-500">Recent Buy: <span id="agent-buy" class="text-white font-medium">--</span></div>
-                        <div class="text-gray-500">Bad Exp: <span id="agent-bad" class="text-white font-medium">--</span></div>
-                        <div class="text-gray-500">Pref: <span id="agent-pref" class="text-white font-medium">--</span></div>
-                    </div>
-
-                    <div class="mt-4 p-2 bg-gray-800/50 rounded text-xs border border-gray-700">
-                        <span class="text-gray-500 block mb-1">Current Action:</span>
-                        <span id="agent-action" class="font-bold text-lg text-white">WAITING</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Explainability & AI Chat -->
-            <div class="p-5 flex-1 overflow-y-auto bg-dark">
-                <h2 class="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">Decision Drivers</h2>
-                
-                <div id="reason-empty" class="text-sm text-gray-600 italic text-center mt-4">Inspect node for causality.</div>
-                
-                <div id="reason-details" class="hidden space-y-3">
-                    <!-- Progress Bars -->
-                    <div>
-                        <div class="flex justify-between text-[10px] text-gray-400 mb-1"><span>Price Sensitivity</span><span id="score-price">80%</span></div>
-                        <div class="progress-bar-bg"><div id="bar-price" class="progress-bar-fill bg-red-500" style="width: 80%"></div></div>
+    <!-- ===================== GPU BENCHMARK MODAL ===================== -->
+    <div id="benchmark-modal" class="fixed inset-0 bg-black/70 z-50 hidden items-center justify-center" style="backdrop-filter: blur(16px);">
+        <div class="glass-bright border border-[#1e2332] rounded-2xl w-[560px] flex flex-col shadow-2xl animate-fade-up">
+            <div class="px-6 py-4 border-b border-[#1e2332] flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-orange-500/20 border border-orange-500/30 rounded-lg flex items-center justify-center">
+                        <svg class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                     </div>
                     <div>
-                        <div class="flex justify-between text-[10px] text-gray-400 mb-1"><span>Peer Influence</span><span id="score-peer">40%</span></div>
-                        <div class="progress-bar-bg"><div id="bar-peer" class="progress-bar-fill bg-blue-500" style="width: 40%"></div></div>
+                        <div class="text-[11px] text-muted uppercase tracking-widest">AMD ROCm</div>
+                        <div class="text-[15px] font-bold text-white">GPU Acceleration Benchmark</div>
                     </div>
-                    <div>
-                        <div class="flex justify-between text-[10px] text-gray-400 mb-1"><span>Brand Trust</span><span id="score-trust">90%</span></div>
-                        <div class="progress-bar-bg"><div id="bar-trust" class="progress-bar-fill bg-green-500" style="width: 90%"></div></div>
-                    </div>
+                </div>
+                <button id="close-benchmark-btn" class="text-muted hover:text-white w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/5 transition-all text-lg leading-none">&times;</button>
+            </div>
+            <div class="p-6 space-y-5">
+                <p class="text-[12px] text-muted leading-relaxed">
+                    Simulyn uses <span class="text-white font-medium">AMD Instinct GPUs via ROCm/PyTorch</span> to accelerate social graph computation. This benchmark measures dense matrix multiply — the same operation used to compute pairwise agent interaction scores.
+                </p>
 
-                    <!-- Fireworks AI Chat -->
-                    <div class="mt-6">
-                        <div class="flex items-center gap-1 mb-2">
-                            <span class="text-xs font-bold text-gray-300">Semantic Reasoning</span>
-                            <span class="text-[9px] bg-orange-500/20 text-orange-400 px-1 rounded uppercase tracking-wider border border-orange-500/50">Fireworks AI</span>
-                        </div>
-                        <div class="relative bg-panel border border-gray-700 rounded-lg p-3 text-xs text-gray-300">
-                            <div class="absolute -left-2 top-4 w-4 h-4 bg-panel border-l border-b border-gray-700 rotate-45"></div>
-                            <div id="ai-chat-content" class="relative z-10 space-y-3">
-                                <div>
-                                    <span class="text-gray-500 font-bold block mb-1">Why?</span>
-                                    <span id="ai-why" class="italic">"..."</span>
-                                </div>
-                                <div>
-                                    <span class="text-gray-500 font-bold block mb-1">What would change my mind?</span>
-                                    <span id="ai-change" class="italic text-accent">"..."</span>
-                                </div>
-                                <div class="flex justify-between border-t border-gray-700 pt-2 mt-2">
-                                    <div><span class="text-gray-500">Confidence:</span> <span id="ai-conf" class="font-bold">--</span></div>
-                                    <div><span class="text-gray-500">Top Factor:</span> <span id="ai-factor" class="font-bold">--</span></div>
-                                </div>
-                            </div>
+                <div class="bg-[#0d1020] border border-[#1e2332] rounded-xl p-4 space-y-3">
+                    <div class="flex items-center justify-between text-[11px]">
+                        <span class="text-muted uppercase tracking-widest">Matrix Size</span>
+                        <div class="flex gap-2">
+                            <button class="benchmark-size-btn active-size px-2.5 py-1 rounded-lg text-white bg-accent/20 border border-accent/30 text-[11px] font-medium" data-nodes="1000">1K</button>
+                            <button class="benchmark-size-btn px-2.5 py-1 rounded-lg text-muted border border-[#1e2332] text-[11px] font-medium hover:text-white hover:border-accent/30 transition-all" data-nodes="5000">5K</button>
+                            <button class="benchmark-size-btn px-2.5 py-1 rounded-lg text-muted border border-[#1e2332] text-[11px] font-medium hover:text-white hover:border-accent/30 transition-all" data-nodes="10000">10K</button>
                         </div>
                     </div>
                 </div>
-            </div>
-        </aside>
 
-    </div>
-
-    <!-- Executive Summary Modal -->
-    <div id="exec-modal" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center hidden">
-        <div class="bg-panel border border-gray-700 rounded-lg w-[800px] max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col">
-            <div class="p-6 border-b border-gray-800 flex justify-between items-center">
-                <div class="flex items-center gap-2">
-                    <span class="text-accent text-xl">📊</span>
-                    <h2 class="text-lg font-bold text-white tracking-wide">AI Business Consultant Report</h2>
-                </div>
-                <button onclick="document.getElementById('exec-modal').classList.add('hidden')" class="text-gray-500 hover:text-white">&times;</button>
-            </div>
-            
-            <div class="p-6 bg-dark">
-                <div class="grid grid-cols-3 gap-4 mb-6">
-                    <div class="bg-panel p-4 rounded border border-gray-800 text-center">
-                        <div class="text-gray-500 text-xs uppercase tracking-widest mb-1">Market Adoption</div>
-                        <div id="exec-adoption" class="text-2xl font-bold text-white">--</div>
+                <!-- Results -->
+                <div id="benchmark-results" class="space-y-3 hidden">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-[#141820] border border-[#1e2332] rounded-xl p-4">
+                            <div class="text-[10px] text-muted uppercase tracking-widest mb-1">CPU Time</div>
+                            <div id="bm-cpu-time" class="text-2xl font-bold text-white">—</div>
+                            <div class="text-[10px] text-muted mt-1">Standard compute</div>
+                        </div>
+                        <div class="bg-[#141820] border border-orange-500/20 rounded-xl p-4">
+                            <div class="text-[10px] text-orange-400 uppercase tracking-widest mb-1">AMD GPU Time</div>
+                            <div id="bm-gpu-time" class="text-2xl font-bold text-orange-400">—</div>
+                            <div class="text-[10px] text-muted mt-1">ROCm accelerated</div>
+                        </div>
                     </div>
-                    <div class="bg-panel p-4 rounded border border-gray-800 text-center">
-                        <div class="text-gray-500 text-xs uppercase tracking-widest mb-1">Expected Revenue</div>
-                        <div id="exec-revenue" class="text-2xl font-bold text-success">--</div>
+                    <div id="bm-speedup-row" class="hidden bg-success/10 border border-success/20 rounded-xl p-3 text-center">
+                        <span class="text-success font-bold text-sm" id="bm-speedup">—</span>
+                        <span class="text-muted text-[12px] ml-2">faster on AMD GPU</span>
                     </div>
-                    <div class="bg-panel p-4 rounded border border-gray-800 text-center">
-                        <div class="text-gray-500 text-xs uppercase tracking-widest mb-1">Risk Score</div>
-                        <div id="exec-risk" class="text-2xl font-bold text-accent">--</div>
+                    <div id="bm-no-gpu-note" class="hidden bg-[#1e2332]/40 border border-[#1e2332] rounded-xl p-3 text-center text-[11px] text-muted">
+                        GPU not detected — running in CPU-only mode. Deploy on AMD Instinct MI300X for full ROCm acceleration.
                     </div>
                 </div>
 
-                <div class="mb-6">
-                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Executive Summary (Fireworks AI)</h3>
-                    <p id="exec-summary-text" class="text-sm text-gray-300 italic border-l-4 border-accent pl-4 py-1">Loading intelligence...</p>
-                </div>
-
-                <div>
-                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Alternative Launch Strategies</h3>
-                    <div id="exec-strategies" class="space-y-3">
-                        <!-- Injected via JS -->
-                    </div>
-                </div>
-            </div>
-            
-            <div class="p-4 border-t border-gray-800 flex justify-end">
-                <button onclick="document.getElementById('exec-modal').classList.add('hidden')" class="bg-gray-800 hover:bg-gray-700 text-white text-xs font-bold py-2 px-4 rounded transition-colors">Close Report</button>
+                <!-- Run button -->
+                <button id="run-benchmark-btn" class="w-full bg-orange-500 hover:bg-orange-400 text-white font-semibold text-sm py-3 rounded-xl transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    <span id="run-benchmark-label">Run Benchmark</span>
+                </button>
             </div>
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <!-- ===================== WELCOME SCREEN ===================== -->
+    <div id="welcome-screen" class="flex-1 flex flex-col items-center justify-center px-6 pb-12 relative">
+        <!-- Background glow -->
+        <div class="absolute inset-0 overflow-hidden pointer-events-none">
+            <div class="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] rounded-full bg-accent/5 blur-[120px]"></div>
+        </div>
+
+        <!-- Hero content -->
+        <div class="w-full max-w-2xl relative">
+            <!-- Badge -->
+            <div class="flex justify-center mb-8 animate-fade-up" style="animation-delay: 0.1s; opacity: 0;">
+                <span class="bg-accent/10 border border-accent/20 text-accent-light text-xs font-medium px-3 py-1 rounded-full">
+                    AI Decision Intelligence Platform
+                </span>
+            </div>
+
+            <!-- Headline -->
+            <h1 class="text-center text-4xl font-bold text-white leading-tight mb-3 animate-fade-up" style="animation-delay: 0.2s; opacity: 0;">
+                What strategic decision<br>are we simulating today?
+            </h1>
+            <p class="text-center text-muted text-[15px] mb-10 animate-fade-up" style="animation-delay: 0.3s; opacity: 0;">
+                Describe it in plain English. Our AI will model the full market response.
+            </p>
+
+            <!-- Main Input -->
+            <div class="animate-fade-up" style="animation-delay: 0.4s; opacity: 0;">
+                <div id="input-wrapper" class="relative rounded-2xl border border-[#1e2332] bg-surface transition-all duration-300 focus-within:border-accent/50 focus-within:shadow-[0_0_0_3px_rgba(99,102,241,0.12)]">
+                    <textarea
+                        id="scenario-input"
+                        rows="4"
+                        class="w-full bg-transparent rounded-2xl px-5 pt-4 pb-12 text-[15px] text-white focus:outline-none resize-none placeholder-[#374151] leading-relaxed"
+                        placeholder="e.g. We are launching premium AI-powered AR glasses in the US priced at $999, targeting tech professionals aged 25–45..."></textarea>
+
+                    <div class="absolute bottom-3 left-4 right-4 flex items-center justify-between">
+                        <div class="flex gap-2">
+                            <button id="btn-upload-txt" title="Upload .txt file" class="group flex items-center gap-1.5 text-[11px] text-muted hover:text-white border border-[#1e2332] hover:border-accent/40 rounded-lg px-2.5 py-1 transition-all duration-200">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                TXT
+                            </button>
+                            <button id="btn-upload-pdf" title="PDF support — Coming Soon" class="group flex items-center gap-1.5 text-[11px] text-[#374151] border border-[#1a1d24] rounded-lg px-2.5 py-1 cursor-not-allowed opacity-50">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                PDF <span class="text-[9px]">Soon</span>
+                            </button>
+                            <button id="btn-upload-docx" title="DOCX support — Coming Soon" class="group flex items-center gap-1.5 text-[11px] text-[#374151] border border-[#1a1d24] rounded-lg px-2.5 py-1 cursor-not-allowed opacity-50">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                DOCX <span class="text-[9px]">Soon</span>
+                            </button>
+                        </div>
+                        <button id="send-scenario-btn" class="flex items-center gap-2 bg-accent hover:bg-accent-light text-white text-sm font-semibold px-5 py-2 rounded-xl transition-all duration-200 active:scale-95">
+                            <span>Simulate</span>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Template Cards -->
+            <div class="mt-8 animate-fade-up" style="animation-delay: 0.55s; opacity: 0;">
+                <p class="text-center text-[11px] text-muted uppercase tracking-widest mb-4">Or choose a scenario</p>
+                <div class="grid grid-cols-3 gap-3">
+                    <button class="template-card text-left glass border border-[#1e2332] rounded-xl p-4" data-template="hardware">
+                        <div class="text-lg mb-2">🚀</div>
+                        <div class="text-[13px] font-semibold text-white mb-1">Hardware Launch</div>
+                        <div class="text-[11px] text-muted leading-relaxed">AI Smart Glasses at $999 for US professionals</div>
+                    </button>
+                    <button class="template-card text-left glass border border-[#1e2332] rounded-xl p-4" data-template="saas">
+                        <div class="text-lg mb-2">📈</div>
+                        <div class="text-[13px] font-semibold text-white mb-1">SaaS Price Change</div>
+                        <div class="text-[11px] text-muted leading-relaxed">Increase subscription from $10 to $18/month</div>
+                    </button>
+                    <button class="template-card text-left glass border border-[#1e2332] rounded-xl p-4" data-template="retail">
+                        <div class="text-lg mb-2">🏪</div>
+                        <div class="text-[13px] font-semibold text-white mb-1">Retail Expansion</div>
+                        <div class="text-[11px] text-muted leading-relaxed">Open a premium café chain in London</div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================== WORKSPACE (Hidden initially) ===================== -->
+    <div id="workspace" class="hidden flex-1 overflow-hidden" style="opacity: 0;">
+        <div class="flex h-full">
+
+            <!-- LEFT: Brief + Assumptions -->
+            <aside id="left-panel" class="w-[300px] glass border-r border-[#1e2332] flex flex-col shrink-0 z-10" style="opacity:0; transform: translateX(-24px);">
+                <!-- Brief Header -->
+                <div class="px-4 py-3 border-b border-[#1e2332] flex items-center justify-between shrink-0">
+                    <div>
+                        <div class="text-[10px] text-muted uppercase tracking-widest mb-0.5">AI Business Brief</div>
+                        <div id="brief-product-name" class="text-sm font-bold text-white">—</div>
+                    </div>
+                    <div id="brief-confidence-badge" class="hidden bg-success/10 text-success text-[10px] font-bold px-2 py-1 rounded-full border border-success/20">
+                        <span id="brief-confidence-value">—</span>
+                    </div>
+                </div>
+
+                <!-- Brief Content -->
+                <div id="business-brief-content" class="p-4 border-b border-[#1e2332] flex flex-col gap-2.5 shrink-0">
+                    <div class="text-xs text-muted italic">Extracting scenario data...</div>
+                </div>
+
+                <!-- Simulation Status -->
+                <div class="px-4 py-3 border-b border-[#1e2332] shrink-0">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-[10px] text-muted uppercase tracking-widest">Simulation Progress</span>
+                        <span id="timeline-day-display" class="text-[11px] font-bold text-accent">Day 0 / 30</span>
+                    </div>
+                    <div class="w-full bg-[#1e2332] h-1.5 rounded-full overflow-hidden">
+                        <div id="timeline-progress" class="progress-gradient h-full w-0 rounded-full transition-all duration-500"></div>
+                    </div>
+                    <div class="flex gap-2 mt-3">
+                        <button id="timeline-play" class="flex-1 bg-accent hover:bg-accent-light text-white text-[11px] font-semibold py-1.5 rounded-lg transition-all">▶ Play</button>
+                        <button id="timeline-pause" class="flex-1 bg-[#1e2332] hover:bg-[#252d3d] text-white text-[11px] font-semibold py-1.5 rounded-lg transition-all">⏸ Pause</button>
+                        <select id="timeline-speed" class="bg-[#1e2332] text-[11px] text-white rounded-lg px-2 outline-none border border-[#252d3d]">
+                            <option value="600">1×</option>
+                            <option value="250" selected>2×</option>
+                            <option value="80">5×</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Live Metrics -->
+                <div class="px-4 py-3 border-b border-[#1e2332] shrink-0">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <div class="text-[10px] text-muted uppercase tracking-widest mb-1">Revenue</div>
+                            <div id="total-revenue" class="text-base font-bold text-white">$0</div>
+                            <div id="revenue-confidence" class="text-[10px] text-muted">—</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-muted uppercase tracking-widest mb-1">Adoption</div>
+                            <div id="adoption-rate" class="text-base font-bold text-success">0%</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-muted uppercase tracking-widest mb-1">Buyers</div>
+                            <div id="buyer-count" class="text-sm font-bold text-white">0</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-muted uppercase tracking-widest mb-1">Rejectors</div>
+                            <div id="rejector-count" class="text-sm font-bold text-white">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Assumptions -->
+                <div class="px-4 py-3 panel-scroll flex-1">
+                    <div class="text-[10px] text-muted uppercase tracking-widest mb-3">Simulation Assumptions</div>
+                    <div id="assumptions-content" class="text-xs text-muted italic">Pending extraction.</div>
+
+                    <!-- Legend -->
+                    <div class="mt-4 pt-3 border-t border-[#1e2332]">
+                        <div class="text-[10px] text-muted uppercase tracking-widest mb-2">Agent Legend</div>
+                        <div class="flex flex-col gap-1.5 text-[11px] text-muted">
+                            <div class="flex items-center gap-2"><span class="legend-dot bg-[#4b5563]"></span>Consumer (Waiting)</div>
+                            <div class="flex items-center gap-2"><span class="legend-dot bg-success"></span>Adopted</div>
+                            <div class="flex items-center gap-2"><span class="legend-dot bg-danger"></span>Rejected</div>
+                            <div class="flex items-center gap-2"><span class="legend-dot bg-[#8b5cf6]"></span>Influencer</div>
+                            <div class="flex items-center gap-2"><span class="legend-dot bg-[#3b82f6]"></span>Retailer</div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- CENTER: Graph + Charts -->
+            <div class="flex-1 flex flex-col overflow-hidden bg-dark">
+
+                <!-- HERO: D3 Graph -->
+                <main id="graph-container" class="flex-1 relative" style="background: radial-gradient(ellipse at center, #0d1020 0%, #080a0f 70%);">
+                    <!-- Subtle grid overlay -->
+                    <div class="absolute inset-0 pointer-events-none" style="background-image: linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px); background-size: 40px 40px;"></div>
+                </main>
+
+                <!-- BOTTOM: Charts + Events -->
+                <div class="h-56 glass border-t border-[#1e2332] shrink-0 flex">
+                    <!-- Events Feed -->
+                    <div class="w-64 border-r border-[#1e2332] px-4 py-3 flex flex-col shrink-0">
+                        <div class="text-[10px] text-muted uppercase tracking-widest mb-2">Narrative Events</div>
+                        <ul id="timeline-events-list" class="flex-1 overflow-y-auto space-y-2 pr-1 panel-scroll"></ul>
+                    </div>
+
+                    <!-- Charts -->
+                    <div class="flex-1 grid grid-cols-2 gap-0">
+                        <div class="border-r border-[#1e2332] px-4 py-3 flex flex-col">
+                            <div class="text-[10px] text-muted uppercase tracking-widest mb-2">Revenue Curve ($)</div>
+                            <div class="flex-1 relative"><canvas id="revenueChart"></canvas></div>
+                        </div>
+                        <div class="px-4 py-3 flex flex-col">
+                            <div class="text-[10px] text-muted uppercase tracking-widest mb-2">Market Adoption (%)</div>
+                            <div class="flex-1 relative"><canvas id="sentimentChart"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT: Entity Inspector -->
+            <aside id="right-panel" class="w-[300px] glass border-l border-[#1e2332] flex flex-col shrink-0 z-10 panel-scroll" style="opacity:0; transform: translateX(24px);">
+                <div class="px-4 py-3 border-b border-[#1e2332] shrink-0">
+                    <div class="text-[10px] text-muted uppercase tracking-widest">Entity Inspector</div>
+                    <div class="text-[11px] text-muted mt-0.5">Click any node to inspect</div>
+                </div>
+                <div id="inspector-content" class="p-4 flex-1 flex flex-col items-center justify-center">
+                    <div class="text-center">
+                        <svg class="w-10 h-10 text-[#1e2332] mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+                        <p class="text-xs text-muted">Select an agent node<br>to view AI reasoning</p>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- ===================== EXECUTIVE REPORT MODAL ===================== -->
+    <div id="report-modal" class="fixed inset-0 bg-black/70 z-50 hidden items-center justify-center" style="backdrop-filter: blur(16px);">
+        <div class="glass-bright border border-[#1e2332] rounded-2xl w-[920px] max-h-[88vh] flex flex-col shadow-2xl animate-fade-up">
+            <div class="px-6 py-4 border-b border-[#1e2332] flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
+                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    </div>
+                    <div>
+                        <div class="text-[11px] text-muted uppercase tracking-widest">Simulyn</div>
+                        <div class="text-[15px] font-bold text-white">Executive Intelligence Report</div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button id="export-pdf-btn" class="flex items-center gap-2 border border-[#1e2332] hover:border-white/20 text-white text-[12px] font-medium px-4 py-1.5 rounded-lg transition-all">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        Export PDF
+                    </button>
+                    <button id="close-report-btn" class="text-muted hover:text-white w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/5 transition-all text-lg leading-none">&times;</button>
+                </div>
+            </div>
+            <div id="report-content" class="flex-1 overflow-y-auto p-6 panel-scroll"></div>
+        </div>
+    </div>
+
+    <!-- D3 Tooltip -->
+    <div id="d3-tooltip" class="glass"></div>
+
+    <script type="module" src="frontend/app.js"></script>
 </body>
 </html>

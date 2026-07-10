@@ -1,11 +1,14 @@
-# Dockerfile for Simulyn Backend
-FROM python:3.10-slim
+# Dockerfile for Simulyn Backend (AMD ROCm Enabled)
+# Using official AMD ROCm PyTorch base image to ensure GPU acceleration works
+FROM rocm/pytorch:latest
 
 WORKDIR /app
 
-# Install dependencies
+# Install dependencies (FastAPI, Uvicorn, etc.)
+# Note: PyTorch is already installed in this base image
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Remove torch from requirements.txt temporarily for the docker build so it doesn't overwrite the ROCm version
+RUN grep -v "torch" requirements.txt > req_no_torch.txt && pip install --no-cache-dir -r req_no_torch.txt
 
 # Copy source code
 COPY main.py .
