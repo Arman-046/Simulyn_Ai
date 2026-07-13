@@ -9,6 +9,9 @@ load_dotenv(_root / ".env")
 FIREWORKS_API_KEY = os.environ.get("FIREWORKS_API_KEY", "").strip().strip('"').strip("'")
 FIREWORKS_BASE_URL = "https://api.fireworks.ai/inference/v1"
 
+# Database connection URL (must be provided or falls back to localhost)
+DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/simulyn")
+
 # Use the fastest available model on this account
 MODEL_NAME = "accounts/fireworks/models/deepseek-v4-pro"
 

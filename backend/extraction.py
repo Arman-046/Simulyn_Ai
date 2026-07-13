@@ -226,6 +226,7 @@ def smart_local_extraction(text: str) -> dict:
         "regulatory_issues": _c("Standard compliance requirements", "70%"),
         "expected_demand": _c("Moderate initial demand, growing with marketing", "75%"),
         "market_segment": _c(segment, "90%"),
+        "product_appeal_score": _c(0.5, "50%"),
         "overall_confidence": confidence,
     }
 
@@ -274,11 +275,13 @@ Return exactly this JSON structure (every field must be present):
   "regulatory_issues": {{"value": "...", "confidence": "XX%"}},
   "expected_demand": {{"value": "...", "confidence": "XX%"}},
   "market_segment": {{"value": "Premium|Mid-Market|Budget|Mass Market|Enterprise", "confidence": "XX%"}},
+  "product_appeal_score": {{"value": <float between 0.0 and 1.0>, "confidence": "XX%"}},
   "overall_confidence": "XX%"
 }}
 
 Rules:
 - price and marketing_budget must be raw numbers (no $ or commas)
+- product_appeal_score should be high (0.8-1.0) for great ideas, low (0.0-0.3) for terrible/overpriced ideas
 - Be specific and accurate to the actual text
 - Do NOT use placeholder text"""
 
@@ -286,10 +289,17 @@ Rules:
             model=MODEL_NAME,
             messages=[{"role": "user", "content": prompt}],
             response_format={"type": "json_object"},
-            max_tokens=800,
+            max_tokens=2000,
             temperature=0.1,
+            timeout=15.0,
         )
-        ai_result = json.loads(response.choices[0].message.content)
+        content = response.choices[0].message.content.strip()
+        if content.startswith("```json"):
+            content = content[7:-3].strip()
+        elif content.startswith("```"):
+            content = content[3:-3].strip()
+        
+        ai_result = json.loads(content)
 
         # Merge: AI result wins, but fall back to local for any missing/null fields
         for key, local_val in local_result.items():

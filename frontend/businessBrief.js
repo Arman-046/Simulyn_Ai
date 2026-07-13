@@ -49,15 +49,28 @@ export function renderAssumptionsPanel(data) {
 
     const marketBudget = data.marketing_budget?.value;
     const supplyCapacity = data.supply_capacity?.value;
+    const competitors = data.competitors?.value || 'Unknown';
+    const segment = data.market_segment?.value || 'General';
+    const price = Number(data.price?.value) || 100;
+
+    // Derive demand growth from marketing budget
+    const budget = Number(marketBudget) || 0;
+    const demandGrowth = budget > 5_000_000 ? '8–12%' : budget > 1_000_000 ? '4–7%' : budget > 100_000 ? '2–4%' : '0.5–2%';
+
+    // Derive competitor response from extracted competitor data
+    const compResponse = competitors.toLowerCase().includes('none') || competitors === 'Unknown'
+        ? 'Minimal' : competitors.split(',').length > 2 ? 'Highly Aggressive' : 'Moderate';
 
     container.innerHTML = `
         <ul class="space-y-2">
-            <li class="flex justify-between text-[11px]"><span class="text-muted">Demand Growth</span><span class="text-white font-medium">3% baseline</span></li>
-            <li class="flex justify-between text-[11px]"><span class="text-muted">Inflation Factor</span><span class="text-white font-medium">2%</span></li>
-            <li class="flex justify-between text-[11px]"><span class="text-muted">Competitor Response</span><span class="text-white font-medium">Aggressive</span></li>
-            <li class="flex justify-between text-[11px]"><span class="text-muted">Supply Chain</span><span class="text-white font-medium">${supplyCapacity || 'Stable'}</span></li>
+            <li class="flex justify-between text-[11px]"><span class="text-muted">Demand Growth</span><span class="text-white font-medium">${demandGrowth} (budget-driven)</span></li>
+            <li class="flex justify-between text-[11px]"><span class="text-muted">Market Segment</span><span class="text-white font-medium">${segment}</span></li>
+            <li class="flex justify-between text-[11px]"><span class="text-muted">Competitor Response</span><span class="text-white font-medium">${compResponse}</span></li>
+            <li class="flex justify-between text-[11px]"><span class="text-muted">Supply Chain</span><span class="text-white font-medium">${supplyCapacity || 'Standard'}</span></li>
             <li class="flex justify-between text-[11px]"><span class="text-muted">Marketing Budget</span><span class="text-white font-medium">${marketBudget ? '$' + Number(marketBudget).toLocaleString() : 'Standard'}</span></li>
             <li class="flex justify-between text-[11px]"><span class="text-muted">Simulation Agents</span><span class="text-white font-medium">300 synthetic</span></li>
             <li class="flex justify-between text-[11px]"><span class="text-muted">Time Horizon</span><span class="text-white font-medium">30 days</span></li>
         </ul>`;
+}
+
 }

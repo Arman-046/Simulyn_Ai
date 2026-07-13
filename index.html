@@ -15,19 +15,19 @@
             theme: {
                 extend: {
                     colors: {
-                        dark: '#080a0f',
-                        panel: '#0f1219',
-                        surface: '#141820',
-                        border: '#1e2332',
-                        accent: '#6366f1',
-                        'accent-light': '#818cf8',
-                        success: '#10b981',
-                        warning: '#f59e0b',
-                        danger: '#ef4444',
-                        muted: '#4b5563',
-                        subtle: '#374151'
+                        dark: '#000000',
+                        panel: '#1c1c1e',
+                        surface: '#2c2c2e',
+                        border: 'rgba(255, 255, 255, 0.1)',
+                        accent: '#0A84FF',
+                        'accent-light': '#5E5CE6',
+                        success: '#32D74B',
+                        warning: '#FFD60A',
+                        danger: '#FF453A',
+                        muted: '#8E8E93',
+                        subtle: '#3A3A3C'
                     },
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    fontFamily: { sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'] },
                     animation: {
                         'fade-up': 'fadeUp 0.6s ease forwards',
                         'fade-in': 'fadeIn 0.4s ease forwards',
@@ -53,21 +53,21 @@
     </script>
     <style>
         * { box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; background: #080a0f; color: #e2e8f0; overflow: hidden; }
+        body { font-family: 'Inter', '-apple-system', 'BlinkMacSystemFont', sans-serif; background: #000000; color: #F2F2F7; overflow: hidden; }
 
         /* Premium D3 Graph Nodes (Apple Aesthetic) */
-        .node-consumer { fill: #1f2937; stroke: #374151; stroke-width: 1px; transition: all 0.4s ease; }
-        .node-retailer { fill: #1d4ed8; stroke: #60a5fa; stroke-width: 2px; filter: drop-shadow(0 0 8px rgba(96,165,250,0.5)); transition: all 0.4s ease; }
-        .node-influencer { fill: #6d28d9; stroke: #a78bfa; stroke-width: 2px; filter: drop-shadow(0 0 8px rgba(167,139,250,0.5)); transition: all 0.4s ease; }
-        .link { stroke: rgba(255,255,255,0.04); stroke-width: 1px; }
+        .node-consumer { fill: #1c1c1e; stroke: #3A3A3C; stroke-width: 1px; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        .node-retailer { fill: #0A84FF; stroke: #64D2FF; stroke-width: 2px; filter: drop-shadow(0 0 8px rgba(10,132,255,0.4)); transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        .node-influencer { fill: #5E5CE6; stroke: #BF5AF2; stroke-width: 2px; filter: drop-shadow(0 0 8px rgba(94,92,230,0.4)); transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        .link { stroke: rgba(255,255,255,0.06); stroke-width: 1px; }
         
-        .state-buy { fill: #059669; stroke: #34d399; stroke-width: 1.5px; filter: drop-shadow(0 0 12px rgba(52,211,153,0.8)); transition: all 0.5s ease; }
-        .state-reject { fill: #b91c1c; stroke: #f87171; stroke-width: 1.5px; filter: drop-shadow(0 0 12px rgba(248,113,113,0.8)); transition: all 0.5s ease; }
-        .state-wait { fill: #1f2937; stroke: #374151; stroke-width: 1px; }
+        .state-buy { fill: #32D74B; stroke: #30D158; stroke-width: 1.5px; filter: drop-shadow(0 0 10px rgba(50,215,75,0.6)); transition: all 0.5s ease; }
+        .state-reject { fill: #FF453A; stroke: #FF6961; stroke-width: 1.5px; filter: drop-shadow(0 0 10px rgba(255,69,58,0.6)); transition: all 0.5s ease; }
+        .state-wait { fill: #eab308; stroke: #ca8a04; stroke-width: 1px; }
 
-        /* Glass panels */
-        .glass { background: rgba(15, 18, 25, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.06); }
-        .glass-bright { background: rgba(20, 24, 32, 0.95); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
+        /* Glass panels (Apple frost) */
+        .glass { background: rgba(28, 28, 30, 0.65); backdrop-filter: saturate(180%) blur(40px); -webkit-backdrop-filter: saturate(180%) blur(40px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .glass-bright { background: rgba(44, 44, 46, 0.75); backdrop-filter: saturate(180%) blur(40px); -webkit-backdrop-filter: saturate(180%) blur(40px); border: 1px solid rgba(255, 255, 255, 0.15); }
 
         /* Shimmer loading effect */
         .shimmer-text {
@@ -89,6 +89,12 @@
             padding: 8px 12px; border-radius: 8px; font-size: 12px;
             transition: opacity 0.2s ease;
         }
+        
+        /* Execution Timeline */
+        .log-line { opacity: 0; animation: fadeUp 0.3s ease forwards; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+        .log-success { color: #32D74B; }
+        .log-pending { color: #8E8E93; }
+        .log-active { color: #0A84FF; font-weight: 600; }
 
         /* Scrollbar */
         ::-webkit-scrollbar { width: 4px; }
@@ -240,14 +246,17 @@
 
             <!-- Main Input -->
             <div class="animate-fade-up" style="animation-delay: 0.4s; opacity: 0;">
-                <div id="input-wrapper" class="relative rounded-2xl border border-[#1e2332] bg-surface transition-all duration-300 focus-within:border-accent/50 focus-within:shadow-[0_0_0_3px_rgba(99,102,241,0.12)]">
+                <div class="mb-2 px-2 flex justify-between items-center text-[11px] text-muted">
+                    <span>💡 For maximum accuracy, include: <strong class="text-white font-medium">Product, Price, Audience, Budget, and USP</strong></span>
+                </div>
+                <div id="input-wrapper" class="relative rounded-2xl border border-[#1e2332] bg-surface transition-all duration-300 focus-within:border-accent/50 focus-within:shadow-[0_0_0_3px_rgba(99,102,241,0.12)] flex flex-col">
                     <textarea
                         id="scenario-input"
-                        rows="4"
-                        class="w-full bg-transparent rounded-2xl px-5 pt-4 pb-12 text-[15px] text-white focus:outline-none resize-none placeholder-[#374151] leading-relaxed"
-                        placeholder="e.g. We are launching premium AI-powered AR glasses in the US priced at $999, targeting tech professionals aged 25–45..."></textarea>
+                        rows="5"
+                        class="w-full bg-transparent px-5 pt-4 pb-3 text-[15px] text-white focus:outline-none resize-none placeholder-[#374151] leading-relaxed"
+                        placeholder="e.g. Product: Revolutionary AI Medical Scanner...&#10;Target Audience: Private Hospitals & Clinics...&#10;Price: $200...&#10;Marketing Budget: $10,000,000..."></textarea>
 
-                    <div class="absolute bottom-3 left-4 right-4 flex items-center justify-between">
+                    <div class="flex items-center justify-between px-4 pb-3 pt-1">
                         <div class="flex gap-2">
                             <button id="btn-upload-txt" title="Upload .txt file" class="group flex items-center gap-1.5 text-[11px] text-muted hover:text-white border border-[#1e2332] hover:border-accent/40 rounded-lg px-2.5 py-1 transition-all duration-200">
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
@@ -272,22 +281,22 @@
 
             <!-- Template Cards -->
             <div class="mt-8 animate-fade-up" style="animation-delay: 0.55s; opacity: 0;">
-                <p class="text-center text-[11px] text-muted uppercase tracking-widest mb-4">Or choose a scenario</p>
+                <p class="text-center text-[11px] text-muted uppercase tracking-widest mb-4">Or test a sample scenario</p>
                 <div class="grid grid-cols-3 gap-3">
                     <button class="template-card text-left glass border border-[#1e2332] rounded-xl p-4" data-template="hardware">
                         <div class="text-lg mb-2">🚀</div>
-                        <div class="text-[13px] font-semibold text-white mb-1">Hardware Launch</div>
-                        <div class="text-[11px] text-muted leading-relaxed">AI Smart Glasses at $999 for US professionals</div>
+                        <div class="text-[13px] font-semibold text-success mb-1">Highly Successful</div>
+                        <div class="text-[11px] text-muted leading-relaxed">Revolutionary AI Medical Scanner for $200 (Massive budget)</div>
                     </button>
                     <button class="template-card text-left glass border border-[#1e2332] rounded-xl p-4" data-template="saas">
-                        <div class="text-lg mb-2">📈</div>
-                        <div class="text-[13px] font-semibold text-white mb-1">SaaS Price Change</div>
-                        <div class="text-[11px] text-muted leading-relaxed">Increase subscription from $10 to $18/month</div>
+                        <div class="text-lg mb-2">📉</div>
+                        <div class="text-[13px] font-semibold text-danger mb-1">Doomed / Reject</div>
+                        <div class="text-[11px] text-muted leading-relaxed">Flimsy Plastic Straw for $50 (Overpriced, terrible product)</div>
                     </button>
                     <button class="template-card text-left glass border border-[#1e2332] rounded-xl p-4" data-template="retail">
-                        <div class="text-lg mb-2">🏪</div>
-                        <div class="text-[13px] font-semibold text-white mb-1">Retail Expansion</div>
-                        <div class="text-[11px] text-muted leading-relaxed">Open a premium café chain in London</div>
+                        <div class="text-lg mb-2">⚖️</div>
+                        <div class="text-[13px] font-semibold text-warning mb-1">Mixed Results</div>
+                        <div class="text-[11px] text-muted leading-relaxed">Mid-range Electric Scooter for $600 (Standard market fit)</div>
                     </button>
                 </div>
             </div>
@@ -299,7 +308,7 @@
         <div class="flex w-full h-full">
 
             <!-- LEFT: Brief + Assumptions -->
-            <aside id="left-panel" class="w-[300px] glass border-r border-[#1e2332] flex flex-col shrink-0 z-10" style="opacity:0; transform: translateX(-24px);">
+            <aside id="left-panel" class="w-[300px] glass border-r border-[#1e2332] flex flex-col shrink-0 z-10 overflow-y-auto panel-scroll" style="opacity:0; transform: translateX(-24px);">
                 <!-- Brief Header -->
                 <div class="px-5 py-4 border-b border-[#1e2332] flex items-center justify-between shrink-0">
                     <div>
@@ -382,13 +391,30 @@
             <div class="flex-1 flex flex-col overflow-hidden bg-dark">
 
                 <!-- HERO: D3 Graph -->
-                <main id="graph-container" class="flex-1 relative" style="background: radial-gradient(ellipse at center, #0d1020 0%, #080a0f 70%);">
+                <main id="graph-container" class="flex-1 relative" style="background: radial-gradient(ellipse at center, #1c1c1e 0%, #000000 70%);">
                     <!-- Subtle grid overlay -->
-                    <div class="absolute inset-0 pointer-events-none" style="background-image: linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px); background-size: 40px 40px;"></div>
+                    <div class="absolute inset-0 pointer-events-none" style="background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px); background-size: 40px 40px;"></div>
+                    
+                    <!-- Abstract Ghost Network (Loading State) -->
+                    <canvas id="ghost-canvas" class="absolute inset-0 w-full h-full pointer-events-none opacity-0 transition-opacity duration-1000 z-10"></canvas>
+                    
+                    <!-- Execution Timeline Overlay -->
+                    <div id="execution-timeline-overlay" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] glass-bright border border-white/10 rounded-2xl shadow-2xl z-20 flex flex-col overflow-hidden hidden" style="backdrop-filter: blur(20px);">
+                        <div class="px-5 py-3 border-b border-white/10 bg-white/5 flex items-center justify-between">
+                            <div class="text-[11px] uppercase tracking-widest text-white font-bold flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-accent animate-pulse"></span>
+                                Simulyn Engine
+                            </div>
+                            <div class="text-[10px] font-mono text-muted">Awaiting API</div>
+                        </div>
+                        <div class="p-5 text-[12px] space-y-2 h-[200px] overflow-y-auto" id="execution-logs">
+                            <!-- Logs go here -->
+                        </div>
+                    </div>
                     
                     <!-- Floating Narrative Events (HUD) -->
                     <div id="narrative-hud" class="absolute bottom-6 left-6 w-[340px] glass border border-[#1e2332] rounded-xl flex flex-col shadow-2xl z-20 transition-all duration-300">
-                        <div class="px-4 py-3 border-b border-[#1e2332] shrink-0 bg-white/5 flex justify-between items-center cursor-pointer hover:bg-white/10 transition-colors rounded-t-xl" onclick="const list = document.getElementById('timeline-events-list'); const btn = document.getElementById('toggle-hud-icon'); if(list.classList.contains('hidden')){list.classList.remove('hidden'); btn.innerHTML='<path stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'/>';}else{list.classList.add('hidden'); btn.innerHTML='<path stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M5 15l7-7 7 7\'/>';}">
+                        <div class="px-4 py-3 border-b border-white/10 shrink-0 bg-white/5 flex justify-between items-center cursor-pointer hover:bg-white/10 transition-colors rounded-t-xl" onclick="const list = document.getElementById('timeline-events-list'); const btn = document.getElementById('toggle-hud-icon'); if(list.classList.contains('hidden')){list.classList.remove('hidden'); btn.innerHTML='<path stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'/>';}else{list.classList.add('hidden'); btn.innerHTML='<path stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M5 15l7-7 7 7\'/>';}">
                             <div class="text-xs text-muted uppercase tracking-widest font-medium">Narrative Events</div>
                             <button class="text-muted"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path id="toggle-hud-icon" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></button>
                         </div>
@@ -398,7 +424,7 @@
             </div>
 
             <!-- RIGHT: Charts & Entity Inspector -->
-            <aside id="right-panel" class="w-[380px] glass border-l border-[#1e2332] flex flex-col shrink-0 z-10 panel-scroll" style="opacity:0; transform: translateX(24px);">
+            <aside id="right-panel" class="w-[380px] glass border-l border-white/10 flex flex-col shrink-0 z-10 panel-scroll" style="opacity:0; transform: translateX(24px);">
                 <!-- Simulation Analytics Charts -->
                 <div class="px-5 py-4 border-b border-[#1e2332] flex flex-col gap-6 shrink-0">
                     <div class="flex flex-col h-[180px]">

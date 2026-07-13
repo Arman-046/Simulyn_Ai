@@ -24,7 +24,7 @@ pip install -r requirements.txt --quiet
 
 echo.
 echo [INFO] Starting Frontend on http://localhost:3000
-start "Simulyn Frontend" cmd /c "python -m http.server 3000 && pause"
+start "Simulyn Frontend" cmd /c "python server.py 3000 && pause"
 
 echo [INFO] Starting Backend API on http://127.0.0.1:8000
 echo [INFO] Press Ctrl+C to stop.

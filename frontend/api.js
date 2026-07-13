@@ -1,10 +1,22 @@
-const API_BASE = 'http://127.0.0.1:8000/api';
+const API_BASE = (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || window.location.hostname === '[::1]' || window.location.hostname === '::1')
+    ? 'http://127.0.0.1:8000/api' 
+    : '/api';
 
 export async function extractScenario(text) {
     const res = await fetch(`${API_BASE}/extract_scenario`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text })
+    });
+    if (!res.ok) throw new Error('API Error');
+    return res.json();
+}
+
+export async function generatePopulation(scenarioData, numNodes = 300) {
+    const res = await fetch(`${API_BASE}/generate_population`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scenario: scenarioData, num_nodes: numNodes })
     });
     if (!res.ok) throw new Error('API Error');
     return res.json();
@@ -34,7 +46,9 @@ export async function explainDecision(agentData, scenarioData) {
             location: agentData.location,
             profession: agentData.profession,
             influence_score: agentData.influenceScore,
-            buying_power: agentData.buyingPower
+            buying_power: agentData.buyingPower,
+            reasoning_trace: window.reasoningTraces ? window.reasoningTraces[agentData.id] : null,
+            persona_data: agentData.persona_data
         })
     });
     if (!res.ok) throw new Error('API Error');
@@ -61,11 +75,11 @@ export async function runBenchmark(numNodes) {
     return res.json();
 }
 
-export async function runSimulation(payload) {
+export async function runSimulation(simulationId) {
     const res = await fetch(`${API_BASE}/simulate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ simulation_id: simulationId })
     });
     if (!res.ok) throw new Error('Simulation API Error');
     return res.json();

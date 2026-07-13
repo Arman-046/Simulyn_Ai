@@ -1,5 +1,5 @@
 import time
-from .models import BenchmarkRequest
+from .schemas.pydantic_schemas import BenchmarkRequest
 
 try:
     import torch

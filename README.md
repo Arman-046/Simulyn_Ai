@@ -1,73 +1,106 @@
-# 🌐 Simulyn: AI-Native Decision Intelligence Platform
-**AMD Developer Hackathon ACT II | Track 3 (Startup/Unicorn)**
+# Simulyn Enterprise
 
-Simulyn is an enterprise-grade Decision Intelligence Platform built on first-principles thinking to disrupt the $90B traditional market research industry. By running a **PyTorch GPU-Accelerated Neural Economic Engine**, Simulyn simulates how thousands of autonomous synthetic agents will adopt your product *before* you spend millions launching it.
+<p align="center">
+  <em>An enterprise-grade, GPU-accelerated market simulation engine powered by PyTorch and Generative AI.</em>
+</p>
 
-## 🚀 The 10x Innovation
-The era of slow surveys and qualitative focus groups is over. Product launches fail because companies rely on "stated preferences" (what humans say they will do) rather than computational behavior.
+## Problem Statement
+Predicting consumer market adoption is traditionally handled through static spreadsheets or subjective human estimates. These methods fail to capture the complex, non-linear dynamics of social influence, network effects, and highly individualized purchasing behaviors.
 
-Simulyn provides a true 10x improvement over existing solutions:
-1. **PyTorch Tensor Economic Engine**: Instead of simple frontend scripts, Simulyn encodes 300+ agents as complex feature tensors (Income, Risk Tolerance, Network Influence). Using AMD ROCm & PyTorch, it calculates daily adoption probabilities and viral network effects across the social graph using highly optimized matrix multiplication on the GPU.
-2. **AI-Extracted Scenarios**: Input a simple text prompt about your product launch. Fireworks AI (DeepSeek-v4) extracts the economics, pricing, region, and target demographics, automatically tuning the GPU tensors to match your real-world market.
-3. **Data-Driven Explainability**: When an agent rejects your product, Simulyn doesn't hallucinate; it uses a localized explainability engine to justify the rejection using the agent's exact PyTorch tensor variables (e.g., "Monthly expenses too high for a $1499 product").
+## Solution
+Simulyn Enterprise bridges LLM persona extraction with mathematically rigorous PyTorch stochastic modeling. By generating structured target audiences from a natural language prompt and running them through a GPU-accelerated agent-based Bass Diffusion model, Simulyn provides micro-level market simulation with macro-level statistical accuracy.
 
-## 💻 AMD Instinct & ROCm Integration
-Simulating a massive, fully-connected social graph across 30 days is an $O(N^2 \times T)$ problem. 
-We migrated the entire core simulation loop into a PyTorch backend (`backend/engine.py`). This dense matrix math runs on **AMD GPUs via ROCm**, calculating the social physics of the graph in milliseconds. This is not a synthetic benchmark—the AMD GPU is actively powering the core economic simulation of the platform.
+## Features
+- **AI Persona Extraction**: Uses Fireworks AI (DeepSeek v4 Pro) to extract structured market variables and generate highly nuanced agent nodes.
+- **PyTorch GPU Engine**: Utilizes `torch.sparse.mm` for ultra-fast, O(E) social network propagation, simulating tens of thousands of agents in milliseconds.
+- **Enterprise Persistence**: Leverages PostgreSQL with an async SQLAlchemy layer, heavily optimized with MVCC 'Option B' architecture to separate inputs from time-series results.
+- **Decoupled Visualization**: Interactive D3.js force-directed graphs intelligently downsampled to preserve DOM memory, coupled with Chart.js for absolute statistical accuracy.
 
-## 🛠️ Tech Stack & Architecture
-- **Backend**: FastAPI & PyTorch (`backend/engine.py` handles the tensor simulation).
-- **Hardware Acceleration**: AMD Instinct / ROCm native.
-- **Frontend**: D3.js (Force-directed network visualization), Vanilla JS/CSS (responsive glassmorphism UI).
-- **AI/LLM**: Fireworks AI API for unstructured text extraction and executive report generation.
+## Architecture Overview
+See [SYSTEM_ARCHITECTURE.md](./SYSTEM_ARCHITECTURE.md) for an in-depth breakdown of the engine, database persistence model, and threading boundaries.
 
-```mermaid
-graph TD
-    %% Styling
-    classDef frontend fill:#0f1219,stroke:#6366f1,stroke-width:2px,color:#fff
-    classDef backend fill:#0d1020,stroke:#10b981,stroke-width:2px,color:#fff
-    classDef hardware fill:#ed1c24,stroke:#fff,stroke-width:2px,color:#fff
-    classDef ai fill:#f59e0b,stroke:#fff,stroke-width:2px,color:#fff
+## Technology Stack
+- **Backend**: FastAPI, Python 3.10+, PyTorch (ROCm/CUDA enabled)
+- **Database**: PostgreSQL 15, SQLAlchemy (asyncpg), Alembic
+- **Cache/Queue**: Redis (Provisioned for future job queuing)
+- **Frontend**: Vanilla JS (ES Modules), D3.js, Chart.js
 
-    A["User Input (Text Scenario)"]:::frontend --> B["Fireworks AI (DeepSeek)"]:::ai
-    B -->|Extracts Market Data| C["FastAPI Backend"]:::backend
-    C -->|Builds Agent Tensors| D["PyTorch Simulation Engine"]:::backend
-    D -->|O(N²) Matrix Math| E["AMD ROCm / Instinct GPU"]:::hardware
-    E -->|Accelerated Results| D
-    D -->|Daily Adoption States| F["D3.js Force-Directed Graph"]:::frontend
-    F -->|Visualizes Economy| G["Executive Report (LLM)"]:::frontend
+## Repository Structure
+```text
+simulyn/
+├── backend/            # FastAPI core, PyTorch engine, SQLAlchemy models
+│   ├── alembic/        # Database migration versions
+│   ├── schemas/        # Pydantic validation schemas
+│   ├── skpi/           # AI persona extraction modules
+│   └── tests/          # Pytest and integration scripts
+├── frontend/           # Static ES module UI, D3 visualizations
+├── Dockerfile          # AMD ROCm PyTorch container spec
+├── docker-compose.yml  # Local Postgres & Redis provisioning
+├── run.bat             # 1-click Windows startup script
+└── server.py           # Cacheless local HTTP server
 ```
 
-## 🏁 Quickstart
+## How It Works
+1. **Scenario Input**: User provides a raw text description of a product launch.
+2. **AI Pipeline**: Fireworks AI parses the text into a strict Pydantic JSON schema.
+3. **Population Generation**: SKPI logic generates `N` agent nodes with randomized income, mood, and social connections.
+4. **PyTorch Simulation**: A sparse matrix is constructed. Social influence cascades across the network using matrix multiplication (`torch.sparse.mm`).
+5. **Visualization**: The resulting 30-day time-series tensors are returned to the frontend and visualized.
 
-The easiest way to run the platform locally on Windows is to use the provided script:
+## Installation & Local Development
 
-1. Copy `.env.example` to `.env` and add your `FIREWORKS_API_KEY`.
-2. Run `run.bat` (This starts both the FastAPI backend and frontend server simultaneously).
+### Prerequisites
+- Docker & Docker Compose
+- Python 3.10+
 
-**Manual Start:**
+### 1. Environment Variables
+Copy `.env.example` to `.env` and populate your keys.
 ```bash
-# Backend (Port 8000)
-pip install -r requirements.txt
-uvicorn backend.main:app --reload
-
-# Frontend (Port 3000)
-python -m http.server 3000
+cp .env.example .env
 ```
-Visit `http://localhost:3000` to interact with the Synthetic Economy.
 
----
+### 2. Infrastructure Setup
+Provision the PostgreSQL database:
+```bash
+docker-compose up -d
+```
 
-## ☁️ AMD Cloud Deployment Fix (GitHub Actions)
-The repository contains a CI/CD workflow (`.github/workflows/deploy.yml`) to automatically deploy the application to an AMD Cloud GPU instance via SSH. 
+### 3. Database Migrations
+Initialize the schema (ensure `alembic.ini` is referenced):
+```bash
+alembic -c backend/alembic.ini upgrade head
+```
 
-**If your workflow is failing with `Error: missing server host`, you must add the following Repository Secrets to your GitHub repository:**
+### 4. Running the Application
+For Windows users:
+```cmd
+run.bat
+```
+Alternatively, manually start the backend and frontend:
+```bash
+uvicorn backend.main:app --host 127.0.0.1 --port 8000
+python server.py 3000
+```
+Navigate to `http://localhost:3000`.
 
-1. Go to your GitHub Repository -> **Settings** -> **Secrets and variables** -> **Actions**
-2. Click **New repository secret** and add the following three secrets:
-   - `AMD_CLOUD_HOST`: The IP address of your AMD Cloud instance.
-   - `AMD_CLOUD_USER`: The SSH username (e.g., `ubuntu`).
-   - `AMD_CLOUD_SSH_KEY`: The private SSH key to access the instance.
-   - `FIREWORKS_API_KEY`: Your Fireworks API Key.
+## Testing
+Run the Pytest suite from the root directory:
+```bash
+export PYTHONPATH="."
+pytest backend/tests/
+```
 
-Once these secrets are added, push a new commit (or re-run the failed action) and the Dockerized PyTorch backend will deploy successfully to the AMD Cloud using ROCm drivers!
+## Known Limitations
+- The API currently lacks JWT Authentication/Authorization.
+- Simulating populations larger than 50,000 agents on systems without a dedicated GPU will fallback to CPU and may trigger 30-second HTTP timeouts.
+
+## Roadmap
+- Integrate Redis Celery workers for asynchronous long-running simulations.
+- Implement JWT Auth.
+- Add WebGL rendering for 100k+ node native UI visualization.
+
+## License
+MIT License. See [LICENSE](./LICENSE).
+
+## Hackathon Information
+Built for the AMD Hackathon. Focused on leveraging AMD ROCm PyTorch optimizations for complex mathematical market simulations.

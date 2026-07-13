@@ -78,11 +78,12 @@ export function resetCharts() {
 }
 
 
-export function updateCharts(nodes, day, price) {
-    const buyers = nodes.filter(n => n.state === 'state-buy').length;
-    const rejectors = nodes.filter(n => n.state === 'state-reject').length;
+export function updateCharts(stats, day, price) {
+    const buyers = stats.buyers;
+    const rejectors = stats.rejectors;
+    const total = stats.total || 1;
     const rev = buyers * price;
-    const adoption = ((buyers / nodes.length) * 100);
+    const adoption = ((buyers / total) * 100);
     const variance = rev * 0.05;
     const label = `D${day}`;
 

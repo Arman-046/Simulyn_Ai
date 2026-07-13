@@ -5,8 +5,8 @@
 import { initGraph, rebuildGraph } from './graph.js';
 import { initCharts, resetCharts } from './charts.js';
 import { initTimeline } from './timeline.js';
-import { initUI, transitionToWorkspace, showNavReportButton, showToast } from './ui.js';
-import { extractScenario, runBenchmark } from './api.js';
+import { initUI, transitionToWorkspace, showNavReportButton, showToast, checkBackendStatus } from './ui.js';
+import { extractScenario, runBenchmark, generatePopulation } from './api.js';
 import { renderBusinessBrief, renderAssumptionsPanel } from './businessBrief.js';
 import { handleNodeClick } from './entityInspector.js';
 import { initSimulation, startSimulation } from './simulation.js';
@@ -17,12 +17,15 @@ let graphInitialized = false;
 
 document.addEventListener('DOMContentLoaded', () => {
 
+    // Check if backend is reachable on load — updates "Engine Online" indicator
+    checkBackendStatus();
+
     // Initialize charts only (no agent data yet — waits for scenario)
     initCharts();
     initTimeline(() => {
         // Simulation complete → show report automatically
         showNavReportButton(() => showExecutiveReport(currentScenarioData));
-        setTimeout(() => showExecutiveReport(currentScenarioData), 800);
+        showExecutiveReport(currentScenarioData);
         showToast('Simulation complete! Executive Report is ready.', 'success');
     });
 
@@ -39,91 +42,164 @@ document.addEventListener('DOMContentLoaded', () => {
     initBenchmarkModal();
 });
 
+// --- Execution Timeline & Ghost Canvas Logic ---
+let ghostAnimFrame = null;
+
+function initGhostGraph() {
+    const canvas = document.getElementById('ghost-canvas');
+    if (!canvas) return;
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+    const ctx = canvas.getContext('2d');
+    canvas.style.opacity = '1';
+
+    const particles = Array.from({ length: 150 }, () => ({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        vx: (Math.random() - 0.5) * 0.5,
+        vy: (Math.random() - 0.5) * 0.5,
+        radius: Math.random() * 2 + 1
+    }));
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'rgba(99, 102, 241, 0.4)';
+        ctx.strokeStyle = 'rgba(99, 102, 241, 0.1)';
+        
+        for (let i = 0; i < particles.length; i++) {
+            const p = particles[i];
+            p.x += p.vx; p.y += p.vy;
+            if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+            if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+            
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            for (let j = i + 1; j < particles.length; j++) {
+                const p2 = particles[j];
+                const dist = Math.hypot(p.x - p2.x, p.y - p2.y);
+                if (dist < 100) {
+                    ctx.beginPath();
+                    ctx.moveTo(p.x, p.y);
+                    ctx.lineTo(p2.x, p2.y);
+                    ctx.stroke();
+                }
+            }
+        }
+        ghostAnimFrame = requestAnimationFrame(draw);
+    }
+    draw();
+}
+
+function stopGhostGraph() {
+    const canvas = document.getElementById('ghost-canvas');
+    if (canvas) canvas.style.opacity = '0';
+    if (ghostAnimFrame) {
+        setTimeout(() => cancelAnimationFrame(ghostAnimFrame), 1000);
+    }
+}
+
+function appendLog(message, type = 'pending') {
+    const logs = document.getElementById('execution-logs');
+    if (!logs) return;
+    const div = document.createElement('div');
+    div.className = `log-line log-${type}`;
+    div.innerHTML = type === 'success' ? `✓ ${message}` : message;
+    logs.appendChild(div);
+    logs.scrollTop = logs.scrollHeight;
+}
+
 async function processScenario(scenarioText) {
     // Optimistic transition to workspace
-    transitionToWorkspace('Analyzing...');
+    transitionToWorkspace('Initializing Engine...');
+    
+    const overlay = document.getElementById('execution-timeline-overlay');
+    const logs = document.getElementById('execution-logs');
+    if (overlay) overlay.classList.replace('hidden', 'flex');
+    if (logs) logs.innerHTML = '';
 
-    // Show extraction progress in brief panel
     const briefContainer = document.getElementById('business-brief-content');
-    const steps = ['Parsing scenario text...', 'Extracting parameters...', 'Calibrating agent population...', 'Preparing simulation...'];
-    let stepIdx = 0;
     
     if (briefContainer) {
-        const showStep = () => {
-            briefContainer.innerHTML = `
-                <div class="space-y-3">
-                    ${[...Array(4)].map((_, i) => `
-                    <div class="brief-field" style="animation-delay:${i * 0.08}s;">
-                        <div class="h-2 bg-[#1e2332] rounded animate-pulse mb-1 w-1/3"></div>
-                        <div class="h-3 bg-[#1e2332] rounded animate-pulse w-full"></div>
-                    </div>`).join('')}
-                </div>
-                <div class="mt-3 flex items-center gap-2 text-[11px] text-accent">
-                    <div class="w-3 h-3 border border-accent border-t-transparent rounded-full animate-spin"></div>
-                    <span>${steps[stepIdx] || 'Processing...'}</span>
-                </div>`;
-        };
-        showStep();
-        const stepInterval = setInterval(() => {
-            stepIdx = Math.min(stepIdx + 1, steps.length - 1);
-            showStep();
-        }, 1200);
+        briefContainer.innerHTML = `
+            <div class="space-y-3">
+                <div class="brief-field"><div class="h-2 bg-[#1e2332] rounded animate-pulse mb-1 w-1/3"></div><div class="h-3 bg-[#1e2332] rounded animate-pulse w-full"></div></div>
+                <div class="brief-field"><div class="h-2 bg-[#1e2332] rounded animate-pulse mb-1 w-1/3"></div><div class="h-3 bg-[#1e2332] rounded animate-pulse w-full"></div></div>
+            </div>`;
 
         try {
-            // Call AI extraction
+            initGhostGraph();
+            appendLog('Scenario received. Establishing API connection...', 'active');
+            appendLog('Classifying product and target audience...', 'pending');
+            
             const data = await extractScenario(scenarioText);
-            clearInterval(stepInterval);
+            
+            appendLog('Product classified.', 'success');
+            appendLog('Industry identified.', 'success');
+            
             currentScenarioData = data;
-
-            // Update nav with real product name
             const navLabel = document.getElementById('nav-product-label');
             if (navLabel) navLabel.textContent = data.product_name?.value || 'Simulation';
 
-            // Render brief + assumptions
+            appendLog('Generating SKPI behavioral archetypes...', 'active');
+            
+            const popData = await generatePopulation(data, 300);
+            
+            appendLog('Archetypes generation complete.', 'success');
+            appendLog('Building synthetic population (300 nodes)...', 'success');
+            appendLog('Generating social network edges...', 'success');
+
             renderBusinessBrief(data);
             renderAssumptionsPanel(data);
 
-            // Initialize D3 graph with scenario-specific agents AFTER workspace is visible
+            appendLog('Initializing D3 Graph Layout...', 'active');
+
             if (!graphInitialized) {
-                setTimeout(() => {
-                    initGraph((nodeData) => handleNodeClick(nodeData, currentScenarioData));
-                    graphInitialized = true;
-                }, 400);
+                initGraph((nodeData) => handleNodeClick(nodeData, currentScenarioData), popData);
+                graphInitialized = true;
             } else {
-                // Rebuild graph with new scenario data (new agent population)
-                setTimeout(() => {
-                    rebuildGraph(data, (nodeData) => handleNodeClick(nodeData, currentScenarioData));
-                    resetCharts();
-                }, 400);
+                rebuildGraph(data, (nodeData) => handleNodeClick(nodeData, currentScenarioData), popData);
+                resetCharts();
             }
 
-            // Initialize scenario-specific simulation (calls PyTorch backend)
-            await initSimulation(data, (nodeData) => handleNodeClick(nodeData, currentScenarioData));
+            stopGhostGraph();
+            
+            appendLog('Graph initialized.', 'success');
+            appendLog('Computing PyTorch Tensor Matrices...', 'active');
 
-            // Auto-start simulation after brief delay
+            await initSimulation(data, popData);
+            
+            appendLog('PyTorch Tensors computed.', 'success');
+            appendLog('Market simulation ready.', 'success');
+
             const product = data.product_name?.value || 'product';
-            const confidence = data.overall_confidence || '90%';
-            showToast(`"${product}" extracted with ${confidence} confidence — starting simulation`, 'success');
+            showToast(`"${product}" generated — starting PyTorch simulation`, 'success');
 
+            // Hide overlay after delay
             setTimeout(() => {
-                startSimulation(() => {
-                    showNavReportButton(() => showExecutiveReport(currentScenarioData));
-                    setTimeout(() => showExecutiveReport(currentScenarioData), 600);
-                    showToast('Simulation complete! Executive Report ready.', 'success');
-                });
-            }, 800);
+                if (overlay) overlay.classList.replace('flex', 'hidden');
+            }, 1500);
+
+            // Start simulation immediately
+            startSimulation(() => {
+                showNavReportButton(() => showExecutiveReport(currentScenarioData));
+                showExecutiveReport(currentScenarioData);
+                showToast('Simulation complete! Executive Report ready.', 'success');
+            });
 
         } catch (err) {
-            clearInterval(stepInterval);
             console.error('[Simulyn] Scenario error:', err);
+            stopGhostGraph();
+            appendLog('Engine Fault: API connection failed.', 'danger');
             if (briefContainer) {
                 briefContainer.innerHTML = `
                     <div class="text-[12px] text-danger">
                         <div class="font-semibold mb-1">Extraction failed</div>
-                        <div class="text-muted">Could not reach the AI engine. Check the backend is running on port 8000.</div>
+                        <div class="text-muted">Could not reach the AI engine. Check the backend is running.</div>
                     </div>`;
             }
-            showToast('Backend not responding. Start it with run.bat', 'danger');
+            showToast('Backend not responding. Is the server running?', 'danger');
         }
     }
 }

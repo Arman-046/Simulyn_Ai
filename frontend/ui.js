@@ -3,9 +3,9 @@
 // =============================================
 
 const TEMPLATES = {
-    hardware: "We are launching AI-powered Smart Glasses in the US for $999, targeting tech professionals aged 25–45 with a $2M marketing budget. Key features include AR overlays, 4K camera, and 12-hour battery. Competitors include Meta Ray-Ban and Apple Vision Pro.",
-    saas: "We are changing our B2B project management SaaS pricing from $10 per user/month to $18 per user/month. We have 50,000 active users, primarily startup founders and product managers in North America. Marketing budget is $500K.",
-    retail: "We are opening 5 premium coffee shops in London, UK. Target audience is professionals aged 28–50. Pricing is £7 for a specialty drink. Initial investment is £2M. We will compete with Starbucks and independent artisan cafes."
+    hardware: "Product: Revolutionary AI Medical Scanner\nTarget Audience: Private Hospitals & Clinics\nPrice: $200 (Mass Market)\nMarketing Budget: $10,000,000\nLaunch Region: Global\nUSP: Detects anomalies with 99.9% accuracy instantly, massively undercutting competitor pricing while offering superior technology.",
+    saas: "Product: Flimsy Plastic Straw\nTarget Audience: Eco-conscious Gen Z consumers\nPrice: $50 (Premium)\nMarketing Budget: $100\nLaunch Region: California\nUSP: A standard single-use plastic straw marketed as a luxury item.",
+    retail: "Product: Mid-range Electric Scooter\nTarget Audience: Urban commuters aged 18-35\nPrice: $600 (Mid-Market)\nMarketing Budget: $500,000\nLaunch Region: Europe\nUSP: Foldable design with a 20-mile range and standard safety features. Competes with Xiaomi and Segway."
 };
 
 export function initUI(onProcessScenario) {
@@ -70,10 +70,9 @@ export function initUI(onProcessScenario) {
         });
     }
 
-    // === Coming Soon documents ===
-    const comingSoon = () => showToast('PDF & DOCX support is coming in Enterprise Edition.', 'info');
-    pdfBtn?.addEventListener('click', comingSoon);
-    docxBtn?.addEventListener('click', comingSoon);
+    // === Coming Soon documents — visually labeled as Pro feature ===
+    pdfBtn?.addEventListener('click', () => showToast('PDF & DOCX import is a Pro feature — coming soon.', 'info'));
+    docxBtn?.addEventListener('click', () => showToast('PDF & DOCX import is a Pro feature — coming soon.', 'info'));
 
     // === Report modal close ===
     if (closeReportBtn) {
@@ -81,6 +80,28 @@ export function initUI(onProcessScenario) {
             const modal = document.getElementById('report-modal');
             if (modal) { modal.style.opacity = '0'; setTimeout(() => { modal.classList.add('hidden'); modal.classList.remove('flex'); modal.style.opacity = ''; }, 300); }
         });
+    }
+}
+
+// === Live Backend Health Check ===
+export async function checkBackendStatus() {
+    const statusEl = document.getElementById('system-status');
+    const API_BASE = (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost')
+        ? 'http://127.0.0.1:8000/api'
+        : '/api';
+    try {
+        const res = await fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(4000) });
+        const data = await res.json();
+        if (statusEl) {
+            const gpuNote = data.pytorch_installed ? ' · PyTorch Ready' : '';
+            statusEl.innerHTML = `<span class="w-1.5 h-1.5 bg-success rounded-full"></span> Engine Online${gpuNote}`;
+            statusEl.className = 'text-[11px] font-mono text-success flex items-center gap-1.5';
+        }
+    } catch (e) {
+        if (statusEl) {
+            statusEl.innerHTML = `<span class="w-1.5 h-1.5 bg-danger rounded-full animate-pulse"></span> Backend Offline`;
+            statusEl.className = 'text-[11px] font-mono text-danger flex items-center gap-1.5';
+        }
     }
 }
 

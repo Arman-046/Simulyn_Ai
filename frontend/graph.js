@@ -11,176 +11,34 @@ let svgEl, nodeGroup, linkGroup, zoomGroup;
 
 export function getNodeGroup() { return nodeGroup; }
 
-const PROFESSIONS_BY_REGION = {
-    "North America": ['Software Engineer', 'Teacher', 'Designer', 'Student', 'Manager', 'Doctor', 'Analyst', 'Entrepreneur', 'Nurse', 'Sales Rep'],
-    "United Kingdom": ['Software Engineer', 'Teacher', 'Consultant', 'Student', 'Manager', 'Doctor', 'Analyst', 'Barista', 'Accountant', 'Solicitor'],
-    "India": ['Software Engineer', 'Teacher', 'Designer', 'Student', 'Business Owner', 'Doctor', 'Analyst', 'Shopkeeper', 'Engineer', 'Freelancer'],
-    "Europe": ['Software Engineer', 'Teacher', 'Designer', 'Student', 'Manager', 'Doctor', 'Analyst', 'Entrepreneur', 'Civil Servant', 'Researcher'],
-    "Asia Pacific": ['Software Engineer', 'Factory Worker', 'Designer', 'Student', 'Manager', 'Doctor', 'Analyst', 'Entrepreneur', 'Trader', 'Teacher'],
-    "default": ['Engineer', 'Teacher', 'Designer', 'Student', 'Manager', 'Doctor', 'Analyst', 'Entrepreneur'],
-};
-
-const CITIES_BY_REGION = {
-    "North America": ['New York', 'San Francisco', 'Chicago', 'Austin', 'Seattle', 'Boston', 'Los Angeles', 'Denver'],
-    "United Kingdom": ['London', 'Manchester', 'Birmingham', 'Edinburgh', 'Bristol', 'Leeds', 'Liverpool', 'Oxford'],
-    "India": ['Mumbai', 'Bangalore', 'Delhi', 'Hyderabad', 'Chennai', 'Pune', 'Kolkata', 'Ahmedabad'],
-    "Europe": ['Berlin', 'Paris', 'Amsterdam', 'Stockholm', 'Barcelona', 'Vienna', 'Prague', 'Zurich'],
-    "Asia Pacific": ['Tokyo', 'Singapore', 'Shanghai', 'Seoul', 'Sydney', 'Melbourne', 'Bangkok', 'Jakarta'],
-    "default": ['City A', 'City B', 'City C', 'Suburban', 'Rural'],
-};
-
-// Income ranges (annual, in USD equivalent) by region
-const INCOME_RANGES = {
-    "North America": { min: 30000, max: 200000 },
-    "United Kingdom": { min: 25000, max: 160000 },
-    "India": { min: 5000, max: 60000 },   // USD equivalent
-    "Europe": { min: 22000, max: 130000 },
-    "Asia Pacific": { min: 15000, max: 120000 },
-    "default": { min: 20000, max: 150000 },
-};
-
-const MOODS = ['Optimistic', 'Anxious', 'Neutral', 'Excited', 'Skeptical'];
-const GOALS = ['Saving for house', 'Paying off debt', 'Upgrading tech', 'Investing', 'Building emergency fund'];
-const FIN_STATUS = ['Saving money', 'Living paycheck to paycheck', 'Comfortable', 'Struggling', 'Investing heavily'];
-const PURCHASES = ['Laptop', 'Headphones', 'Shoes', 'Nothing', 'Subscription', 'Phone'];
-const NEG_EXP = ['Poor delivery', 'Faulty product', 'Overcharged', 'None', 'None', 'None'];
-const NEEDS = ['Phone', 'Commute', 'Status symbol', 'Entertainment', 'Utility', 'Productivity'];
-const SALARY_DAYS = ['1st', '5th', '15th', 'Last day'];
-const PREFS = ['Eco-friendly', 'Premium quality', 'Budget', 'Brand name', 'Locally sourced', 'Tech-forward'];
-
-function seededRandom(seed) {
-    let s = seed >>> 0;
-    s ^= s << 13; s ^= s >> 17; s ^= s << 5;
-    return (s >>> 0) / 4294967296;
-}
-
-function buildSeedFromScenario(scenario) {
-    const str = (scenario?.product_name?.value || '') +
-        (scenario?.launch_region?.value || '') +
-        (scenario?.price?.value || '') +
-        (scenario?.target_audience?.value || '');
-    let hash = 5381;
-    for (let i = 0; i < str.length; i++) hash = ((hash << 5) + hash) + str.charCodeAt(i);
-    return hash >>> 0;
-}
-
-function getAudienceBias(audience = '', scenario = {}) {
-    const a = audience.toLowerCase();
-    const price = Number(scenario?.price?.value) || 100;
-    const segment = (scenario?.market_segment?.value || '').toLowerCase();
-
-    let moodBias = {}; // empty = uniform
-    let financeBias = 0; // positive = wealthier agents
-    let ageBias = { min: 18, max: 68 };
-    let prefBias = '';
-
-    if (a.includes('professional') || a.includes('enterprise') || a.includes('b2b')) {
-        financeBias = 0.4; ageBias = { min: 28, max: 55 }; prefBias = 'Premium quality';
-    }
-    if (a.includes('student') || a.includes('youth') || a.includes('gen z')) {
-        financeBias = -0.5; ageBias = { min: 18, max: 28 }; prefBias = 'Budget';
-    }
-    if (a.includes('senior') || a.includes('elderly') || a.includes('retiree')) {
-        ageBias = { min: 55, max: 80 }; prefBias = 'Brand name';
-    }
-    if (a.includes('executive') || a.includes('c-suite') || a.includes('hni') || a.includes('high')) {
-        financeBias = 0.7; ageBias = { min: 35, max: 65 }; prefBias = 'Premium quality';
-    }
-    if (segment.includes('premium') || segment.includes('luxury')) {
-        financeBias = Math.max(financeBias, 0.3);
-        prefBias = prefBias || 'Premium quality';
-    }
-    if (segment.includes('budget') || segment.includes('value') || segment.includes('mass')) {
-        financeBias = Math.min(financeBias, -0.2);
-        prefBias = prefBias || 'Budget';
-    }
-
-    return { financeBias, ageBias, prefBias };
-}
-
-/**
- * (Re-)generate agent population based on the current scenario.
- * Call this every time a new scenario is loaded.
- */
-export function initData(scenario = null) {
-    const region = scenario?.launch_region?.value || 'North America';
-    const audience = scenario?.target_audience?.value || '';
-    const price = Number(scenario?.price?.value) || 100;
-
-    const professions = PROFESSIONS_BY_REGION[region] || PROFESSIONS_BY_REGION["default"];
-    const cities = CITIES_BY_REGION[region] || CITIES_BY_REGION["default"];
-    const incomeRange = INCOME_RANGES[region] || INCOME_RANGES["default"];
-
-    const bias = getAudienceBias(audience, scenario);
-    const seed = buildSeedFromScenario(scenario);
-
-    nodes = Array.from({ length: NUM_NODES }, (_, i) => {
-        const r = seededRandom(seed ^ (i * 7919));
-        const type = r < 0.05 ? 'retailer' : r < 0.15 ? 'influencer' : 'consumer';
-
-        // Seeded random for each attribute
-        const rng = (offset) => seededRandom(seed ^ (i * 7919 + offset * 1000003));
-
-        // Income — biased toward target audience
-        const incomeBase = incomeRange.min + rng(1) * (incomeRange.max - incomeRange.min);
-        const incomeBiased = Math.max(incomeRange.min, incomeBase * (1 + bias.financeBias * 0.8));
-        const income = Math.floor(incomeBiased);
-
-        // Savings — correlated with income
-        const savingsRatio = 0.05 + rng(2) * 0.6; // 5%–65% of income
-        const savings = Math.floor(income * savingsRatio);
-
-        // Monthly expenses — realistic
-        const monthlyExpenses = Math.floor((income / 12) * (0.4 + rng(3) * 0.5));
-
-        // Age — biased toward target
-        const age = Math.floor(bias.ageBias.min + rng(4) * (bias.ageBias.max - bias.ageBias.min));
-
-        // Preference — biased toward segment
-        let preference;
-        if (bias.prefBias && rng(5) > 0.35) {
-            preference = bias.prefBias;
+export function initData(popData) {
+    if (popData && popData.agents && popData.links) {
+        if (popData.agents.length > 500) {
+            nodes = popData.agents.slice(0, 500);
+            const validIds = new Set(nodes.map(n => n.id));
+            links = popData.links.filter(l => validIds.has(l.source) && validIds.has(l.target));
+            
+            let indicator = document.getElementById('downsample-indicator');
+            if (!indicator) {
+                indicator = document.createElement('div');
+                indicator.id = 'downsample-indicator';
+                indicator.style = "position:absolute; bottom:12px; right:12px; color:#94a3b8; font-size:11px; z-index:50; background: rgba(15,18,25,0.8); padding: 4px 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);";
+                const container = document.getElementById('graph-container');
+                if (container) container.appendChild(indicator);
+            }
+            indicator.textContent = `Visualizing 500 of ${popData.agents.length.toLocaleString()} agents`;
+            indicator.style.display = 'block';
         } else {
-            preference = PREFS[Math.floor(rng(5) * PREFS.length)];
-        }
-
-        return {
-            id: i,
-            type,
-            state: 'state-wait',
-            age,
-            income,
-            savings,
-            riskTolerance: rng(6),
-            brandLoyalty: rng(7),
-            mood: MOODS[Math.floor(rng(8) * MOODS.length)],
-            goal: GOALS[Math.floor(rng(9) * GOALS.length)],
-            financialStatus: FIN_STATUS[Math.floor(rng(10) * FIN_STATUS.length)],
-            recentPurchase: PURCHASES[Math.floor(rng(11) * PURCHASES.length)],
-            recentNegativeExperience: NEG_EXP[Math.floor(rng(12) * NEG_EXP.length)],
-            currentNeed: NEEDS[Math.floor(rng(13) * NEEDS.length)],
-            monthlyExpenses,
-            salaryDay: SALARY_DAYS[Math.floor(rng(14) * SALARY_DAYS.length)],
-            preference,
-            location: cities[Math.floor(rng(15) * cities.length)],
-            profession: professions[Math.floor(rng(16) * professions.length)],
-            influenceScore: Math.floor(rng(17) * 100),
-            buyingPower: Math.floor(rng(18) * 100),
-        };
-    });
-
-    // Rebuild links
-    links = [];
-    for (let i = 0; i < NUM_NODES; i++) {
-        const conns = nodes[i].type === 'influencer' ? 20 : nodes[i].type === 'retailer' ? 25 : 3;
-        for (let j = 0; j < conns; j++) {
-            const t = Math.floor(seededRandom(seed ^ (i * 31337 + j * 999983)) * NUM_NODES);
-            if (t !== i) links.push({ source: i, target: t });
+            nodes = popData.agents;
+            links = popData.links;
+            const indicator = document.getElementById('downsample-indicator');
+            if (indicator) indicator.style.display = 'none';
         }
     }
 }
 
-export function initGraph(onNodeClick) {
+export function initGraph(onNodeClick, popData) {
+    initData(popData);
     const container = document.getElementById('graph-container');
     if (!container) return;
 
@@ -243,10 +101,10 @@ export function refreshNodeStyles() {
     if (nodeGroup) nodeGroup.attr('class', d => `node-${d.type} ${d.state}`);
 }
 
-export function rebuildGraph(scenario, onNodeClick) {
-    initData(scenario);
+export function rebuildGraph(scenario, onNodeClick, popData) {
+    initData(popData);
 
     if (!zoomGroup) return; // graph not rendered yet
     d3.select('#graph-container').selectAll('svg').remove();
-    initGraph(onNodeClick);
+    initGraph(onNodeClick, popData);
 }
